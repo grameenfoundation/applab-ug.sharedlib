@@ -1,7 +1,10 @@
 package org.purc.purcforms.client.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.purc.purcforms.client.listener.BindingChangeListener;
 import org.purc.purcforms.client.util.FormUtil;
 import org.purc.purcforms.client.xforms.UiElementBuilder;
 import org.purc.purcforms.client.xforms.XformConstants;
@@ -44,6 +47,8 @@ public class OptionDef implements Serializable {
 	/** The question to which this option belongs. */
 	private QuestionDef parent;
 
+	private List<BindingChangeListener> bindingChangeListeners;
+	
 	
 	/** Constructs the answer option definition object where
 	 * initialization parameters are not supplied. */
@@ -198,5 +203,20 @@ public class OptionDef implements Serializable {
 			node.setAttribute(XformConstants.ATTRIBUTE_NAME_VALUE, text);
 			parentNode.appendChild(node);
 		}
+    }
+    
+    public void addBindingChangeListener(BindingChangeListener bindingChangeListener){
+    	if(bindingChangeListeners == null)
+    		bindingChangeListeners = new ArrayList<BindingChangeListener>();
+    	
+    	if(!bindingChangeListeners.contains(bindingChangeListener))
+    		bindingChangeListeners.add(bindingChangeListener);
+    }
+    
+    public void removeBindingChangeListener(BindingChangeListener bindingChangeListener){
+    	if(bindingChangeListeners == null)
+    		return;
+    	
+    	bindingChangeListeners.remove(bindingChangeListener);
     }
 }

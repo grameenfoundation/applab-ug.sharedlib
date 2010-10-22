@@ -177,6 +177,7 @@ public class SkipRule implements Serializable{
 	}
 	
 	public void removeCondition(Condition condition){
+		condition.removeBindingChangeListeners();
 		conditions.remove(condition);
 	}
 	

@@ -3,6 +3,7 @@ package org.purc.purcforms.client.model;
 import java.io.Serializable;
 import java.util.Date;
 
+import org.purc.purcforms.client.listener.BindingChangeListener;
 import org.purc.purcforms.client.util.FormUtil;
 
 import com.google.gwt.i18n.client.DateTimeFormat;
@@ -14,7 +15,7 @@ import com.google.gwt.i18n.client.DateTimeFormat;
  *
  *@author Daniel Kayiwa
  */
-public class Condition implements Serializable{
+public class Condition implements Serializable, BindingChangeListener {
 
 	/** The unique identifier of the question referenced by this condition. */
 	private int questionId = ModelConstants.NULL_ID;
@@ -45,6 +46,8 @@ public class Condition implements Serializable{
 
 	/** The unique identifier of a condition. */
 	private int id = ModelConstants.NULL_ID;
+	
+	private OptionDef bindingChangeSrc;
 
 	/** Creates a new condition object. */
 	public Condition(){
@@ -613,5 +616,29 @@ public class Condition implements Serializable{
 			return formDef.getQuestion(value.substring(value.indexOf('/')+1));
 
 		return null;
+	}
+	
+	public void onBindingChanged(Object sender, String oldValue, String newValue){
+		assert(value != null);
+		assert(oldValue != null);
+		assert(newValue != null);
+		
+		if(value.equalsIgnoreCase(oldValue))
+			value = newValue;
+	}
+	
+	public void setBindingChangeListener(QuestionDef questionDef){
+		if(questionDef.getDataType() == QuestionDef.QTN_TYPE_LIST_EXCLUSIVE ||
+				questionDef.getDataType() == QuestionDef.QTN_TYPE_LIST_MULTIPLE ||
+				questionDef.getDataType() == QuestionDef.QTN_TYPE_LIST_EXCLUSIVE_DYNAMIC){
+			bindingChangeSrc = questionDef.getOptionWithValue(value);
+			if(bindingChangeSrc != null)
+				bindingChangeSrc.addBindingChangeListener(this);
+		}
+	}
+	
+	public void removeBindingChangeListeners(){
+		if(bindingChangeSrc != null)
+			bindingChangeSrc.removeBindingChangeListener(this);
 	}
 }

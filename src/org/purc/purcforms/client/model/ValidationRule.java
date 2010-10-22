@@ -148,6 +148,7 @@ public class ValidationRule implements Serializable{
 	}
 	
 	public void removeCondition(Condition condition){
+		condition.removeBindingChangeListeners();
 		conditions.remove(condition);
 	}
 	
