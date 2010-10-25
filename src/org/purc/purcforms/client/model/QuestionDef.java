@@ -1232,7 +1232,7 @@ public class QuestionDef implements Serializable{
 		List list = (List)options;
 		for(int i=0; i<list.size(); i++){
 			OptionDef optionDef = (OptionDef)list.get(i);
-			if(optionDef.getVariableName().equals(value))
+			if(optionDef.getBinding().equals(value))
 				return optionDef;
 		}
 		return null;
@@ -1283,7 +1283,7 @@ public class QuestionDef implements Serializable{
 
 		for(int i=0; i<getOptions().size(); i++){
 			OptionDef def = (OptionDef)getOptions().get(i);
-			if(def.getVariableName().equals(varName))
+			if(def.getBinding().equals(varName))
 				return i;
 		}
 
@@ -1300,7 +1300,7 @@ public class QuestionDef implements Serializable{
 		
 		for(int index = 0; index < options2.size(); index++){
 			OptionDef optn = (OptionDef)options2.get(index);
-			OptionDef optionDef = this.getOptionWithValue(optn.getVariableName());
+			OptionDef optionDef = this.getOptionWithValue(optn.getBinding());
 			if(optionDef == null){
 				missingOptns.add(optn);
 				continue;
@@ -1323,7 +1323,7 @@ public class QuestionDef implements Serializable{
 		int count = getOptionCount();
 		for(int index = 0; index < count; index++){
 			OptionDef optionDef = getOptionAt(index);
-			if(questionDef.getOptionWithValue(optionDef.getVariableName()) == null){
+			if(questionDef.getOptionWithValue(optionDef.getBinding()) == null){
 				
 				//TODO Make sure this is not buggy.
 				//If before refresh number of options is the same as the new number,
@@ -1331,7 +1331,7 @@ public class QuestionDef implements Serializable{
 				//ones with the old values.
 				if(oldCount == count){
 					OptionDef optnDef = questionDef.getOptionAt(index);
-					optionDef.setBinding(optnDef.getVariableName());
+					optionDef.setBinding(optnDef.getBinding());
 					optionDef.setText(optnDef.getText());
 				}
 				
@@ -1343,7 +1343,7 @@ public class QuestionDef implements Serializable{
 		//original server side form.
 		for(int index = 0; index < missingOptns.size(); index++){
 			OptionDef optnDef = missingOptns.get(index);
-			orderedOptns.add(new OptionDef((orderedOptns.size() + index + 1), optnDef.getText(), optnDef.getVariableName(), this));
+			orderedOptns.add(new OptionDef((orderedOptns.size() + index + 1), optnDef.getText(), optnDef.getBinding(), this));
 		}
 
 		options = orderedOptns;

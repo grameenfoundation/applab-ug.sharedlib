@@ -253,7 +253,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		if(questionDef != null){
 			OptionDef optionDef = questionDef.getOptionWithText(getTextBoxAnswer());
 			if(optionDef != null)
-				questionDef.setAnswer(optionDef.getVariableName());
+				questionDef.setAnswer(optionDef.getBinding());
 			else{
 				questionDef.setAnswer(null);
 				setText(null);
@@ -448,8 +448,8 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			if(options != null){
 				for(int index = 0; index < options.size(); index++){
 					OptionDef optionDef = (OptionDef)options.get(index);
-					listBox.addItem(optionDef.getText(), optionDef.getVariableName());
-					if(optionDef.getVariableName().equalsIgnoreCase(defaultValue))
+					listBox.addItem(optionDef.getText(), optionDef.getBinding());
+					if(optionDef.getBinding().equalsIgnoreCase(defaultValue))
 						defaultValueIndex = index+1;
 				}
 			}
@@ -588,7 +588,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			if(options != null){
 				for(int index = 0; index < options.size(); index++){
 					OptionDef optionDef = (OptionDef)options.get(index);
-					if(optionDef.getVariableName().equalsIgnoreCase(answer))
+					if(optionDef.getBinding().equalsIgnoreCase(answer))
 						defaultValueIndex = index+1;
 				}
 			}
@@ -798,7 +798,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		if(widget instanceof TextBox && questionDef.getDataType() == QuestionDef.QTN_TYPE_LIST_EXCLUSIVE){
 			OptionDef optionDef = questionDef.getOptionWithText(((TextBox)widget).getText());
 			if(optionDef != null)
-				questionDef.setAnswer(optionDef.getVariableName());
+				questionDef.setAnswer(optionDef.getBinding());
 			else
 				questionDef.setAnswer(null);
 

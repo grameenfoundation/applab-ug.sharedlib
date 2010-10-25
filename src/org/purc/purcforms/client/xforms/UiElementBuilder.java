@@ -239,7 +239,7 @@ public class UiElementBuilder {
 	 */
 	public static Element fromOptionDef2Xform(OptionDef optionDef, Document doc, Element uiNode){
 		Element itemNode =  doc.createElement(XformConstants.NODE_NAME_ITEM);
-		itemNode.setAttribute(XformConstants.ATTRIBUTE_NAME_ID, optionDef.getVariableName());
+		itemNode.setAttribute(XformConstants.ATTRIBUTE_NAME_ID, optionDef.getBinding());
 
 		Element node =  doc.createElement(XformConstants.NODE_NAME_LABEL);
 		node.appendChild(doc.createTextNode(optionDef.getText()));
@@ -247,7 +247,7 @@ public class UiElementBuilder {
 		optionDef.setLabelNode(node);
 
 		node =  doc.createElement(XformConstants.NODE_NAME_VALUE);
-		node.appendChild(doc.createTextNode(optionDef.getVariableName()));
+		node.appendChild(doc.createTextNode(optionDef.getBinding()));
 		itemNode.appendChild(node);
 		optionDef.setValueNode(node);
 

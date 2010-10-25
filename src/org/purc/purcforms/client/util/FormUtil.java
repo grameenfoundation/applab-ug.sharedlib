@@ -455,6 +455,10 @@ public class FormUtil {
 	}
 
 	public static String getDivValue(String id){
+		return getDivValue(id, true);
+	}
+	
+	public static String getDivValue(String id, boolean remove){
 		//RootPanel p = RootPanel.get(id);
 
 		com.google.gwt.dom.client.Element p = com.google.gwt.dom.client.Document.get().getElementById(id);
@@ -463,7 +467,10 @@ public class FormUtil {
 			if(nodes != null && nodes.getLength() > 0){
 				Node node = nodes.getItem(0);
 				String s = node.getNodeValue();
-				p.removeChild(node);
+				
+				if(remove)
+					p.removeChild(node);
+				
 				return s;
 			}
 		}

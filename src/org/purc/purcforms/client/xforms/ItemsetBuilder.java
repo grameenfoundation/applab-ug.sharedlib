@@ -129,12 +129,12 @@ public class ItemsetBuilder {
 		optionDef.setLabelNode(node);
 
 		node =  doc.createElement("value");
-		node.appendChild(doc.createTextNode(optionDef.getVariableName()));
+		node.appendChild(doc.createTextNode(optionDef.getBinding()));
 		itemNode.appendChild(node);
 		optionDef.setValueNode(node);
 
-		itemNode.setAttribute(XformConstants.ATTRIBUTE_NAME_ID, optionDef.getVariableName());
-		itemNode.setAttribute(XformConstants.ATTRIBUTE_NAME_PARENT, parentOptionDef.getVariableName());
+		itemNode.setAttribute(XformConstants.ATTRIBUTE_NAME_ID, optionDef.getBinding());
+		itemNode.setAttribute(XformConstants.ATTRIBUTE_NAME_PARENT, parentOptionDef.getBinding());
 
 		dataNode.appendChild(itemNode);
 	}
@@ -226,9 +226,9 @@ public class ItemsetBuilder {
 					addNewDynamicOption(formDef.getDoc(), list.get(index), parentOptionDef, dynamicOptionDef.getDataNode());
 				else{
 					XmlUtil.setTextNodeValue(optionDef.getLabelNode(),optionDef.getText());
-					XmlUtil.setTextNodeValue(optionDef.getValueNode(),optionDef.getVariableName());
-					optionDef.getControlNode().setAttribute(XformConstants.ATTRIBUTE_NAME_ID, optionDef.getVariableName());
-					optionDef.getControlNode().setAttribute(XformConstants.ATTRIBUTE_NAME_PARENT, parentOptionDef.getVariableName());
+					XmlUtil.setTextNodeValue(optionDef.getValueNode(),optionDef.getBinding());
+					optionDef.getControlNode().setAttribute(XformConstants.ATTRIBUTE_NAME_ID, optionDef.getBinding());
+					optionDef.getControlNode().setAttribute(XformConstants.ATTRIBUTE_NAME_PARENT, parentOptionDef.getBinding());
 				}
 			}
 		}

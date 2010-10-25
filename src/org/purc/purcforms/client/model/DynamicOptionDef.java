@@ -328,7 +328,7 @@ public class DynamicOptionDef  implements Serializable{
 		List list = (List)options;
 		for(int i=0; i<list.size(); i++){
 			OptionDef optionDef = (OptionDef)list.get(i);
-			if(optionDef.getVariableName().equals(value))
+			if(optionDef.getBinding().equals(value))
 				return optionDef;
 		}
 		return null;
@@ -429,7 +429,7 @@ public class DynamicOptionDef  implements Serializable{
 			if(optionDef == null)
 				continue; //how can this be????.
 			
-			optionDef = newParentQtnDef.getOptionWithValue(optionDef.getVariableName());
+			optionDef = newParentQtnDef.getOptionWithValue(optionDef.getBinding());
 			if(optionDef == null)
 				continue; //possibly option deleted.
 			
@@ -445,7 +445,7 @@ public class DynamicOptionDef  implements Serializable{
 		for(int index = 0; index < list.size(); index++){
 			OptionDef oldOptionDef = list.get(index);
 			
-			OptionDef newOptionDef = newParentQtnDef.getOptionWithValue(oldOptionDef.getVariableName());
+			OptionDef newOptionDef = newParentQtnDef.getOptionWithValue(oldOptionDef.getBinding());
 			if(newOptionDef == null){
 				//We do not want to lose options we had created before refresh.
 				//The user should manually delete them after a refresh, if they don't want them.
