@@ -24,6 +24,7 @@ import com.google.gwt.http.client.Response;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.MultiWordSuggestOracle;
@@ -42,6 +43,38 @@ import com.google.gwt.xml.client.Element;
  *
  */
 public class FormUtil {
+	
+	/** Parameter for the form id. e.g formId, surveyId, questionaireId, etc. */
+	private static final String PARAM_NAME_FORM_ID_NAME = "formIdName";
+	
+	/** 
+	 * Parameter for the format in which two save the form. 
+	 * For now we only have the default value "purcforms" or "javarosa"
+	 */
+	private static final String PARAM_NAME_SAVE_FORMAT = "saveFormat";
+	
+	/** 
+	 * Flag to tell whether to combine the xform with widget layout and JavaScript 
+	 * as one text document, when saving the form. 
+	 * Possible values are "1" or "true" for YES and "0" or "false" for NO
+	 */
+	private static final String PARAM_NAME_COMBINE_FORM_ON_SAVE = "combineFormOnSave";
+	
+	/**
+	 * Flag to tell whether we allow automatic rebuilding of form bindings.
+	 * e.g setting the bindings to q1, q2, q3, etc according to the order of the questions.
+	 * Possible values are "1" or "true" for YES and "0" or "false" for NO
+	 */
+	private static final String PARAM_NAME_REBUILD_BINDINGS = "rebuildBindings";
+	
+	/**
+	 * Flag to tell whether the form structure can change or not.
+	 * When the form structure cannot change, no new questions can be added and the existing
+	 * ones cannot be deleted. But question properties like, text, visible, skip logic, etc can be changed.
+	 * Possible values are "1" or "true" for YES and "0" or "false" for NO
+	 */
+	private static final String PARAM_NAME_READONLY = "readOnly";
+	
 
 	/** The date time format used in the xforms model xml. */
 	private static DateTimeFormat dateTimeSubmitFormat;
@@ -75,6 +108,7 @@ public class FormUtil {
 	private static String saveFormat;
 	private static boolean combineFormOnSave = true;
 	private static boolean rebuildBindings = false;
+	private static boolean readOnlyMode = false;;
 	
 	public static String JAVAROSA = "javarosa";
 	
@@ -341,7 +375,7 @@ public class FormUtil {
 			}
 		});
 	}
-
+	
 	/**
 	 * Gets the parameters passed in the host html file as divs (preferably hidden divs).
 	 * For now this is the way of passing parameters to the form designer and runtime widget.
@@ -362,7 +396,7 @@ public class FormUtil {
 		if(multimediaUrlSuffix == null || multimediaUrlSuffix.trim().length() == 0)
 			multimediaUrlSuffix = "multimedia";
 
-		formIdName = getDivValue("formIdName");
+		formIdName = getDivValue(PARAM_NAME_FORM_ID_NAME);
 		if(formIdName == null || formIdName.trim().length() == 0)
 			formIdName = "formId";
 
@@ -431,7 +465,7 @@ public class FormUtil {
 		if(s != null && s.trim().length() > 0)
 			XformConstants.ATTRIBUTE_NAME_CONSTRAINT_MESSAGE = s;
 		
-		saveFormat = getDivValue("saveFormat");
+		saveFormat = getDivValue(PARAM_NAME_SAVE_FORMAT);
 		
 		if(JAVAROSA.equalsIgnoreCase(saveFormat)){
 			gpsTypeName = "geopoint";
@@ -440,18 +474,111 @@ public class FormUtil {
 			XformConstants.DATA_TYPE_BINARY = "binary";
 		}
 		
-		s = getDivValue("combineFormOnSave");
+		s = getDivValue(PARAM_NAME_COMBINE_FORM_ON_SAVE);
 		if(s != null && s.trim().length() > 0){
 			if("0".equals(s) || "false".equals(s))
 				combineFormOnSave = false;
 		}
 		
-		s = getDivValue("rebuildBindings");
+		s = getDivValue(PARAM_NAME_REBUILD_BINDINGS);
 		if(s != null && s.trim().length() > 0){
 			if("1".equals(s) || "true".equals(s))
 				rebuildBindings = true;
 		}
 		
+		s = FormUtil.getDivValue(PARAM_NAME_READONLY, false);
+		if(s != null && s.trim().length() > 0){
+			if("1".equals(s) || "true".equals(s))
+				readOnlyMode = true;
+		}
+		
+		retrieveUrlParameters();
+	}
+	
+	/**
+	 * Converts a string to a boolean.
+	 * 
+	 * @param value is the boolean string value.
+	 * @return the boolean value.
+	 */
+	private static boolean fromString2Boolean(String value){
+		return "1".equals(value) || "true".equals(value);
+	}
+	
+	/**
+	 * Extracts customization parameters from the current url.
+	 * If any of these parameters has been set via a div in the html host file,
+	 * it will be overwritten by the value in the url. 
+	 */
+	private static void retrieveUrlParameters(){
+		String queryString = Window.Location.getQueryString();
+		if(queryString == null){
+			return;
+		}
+		
+		//remove the starting ? characher.
+		queryString = queryString.substring(1); 
+		
+		String[] parameters = queryString.split("&");
+		if(parameters == null){
+			return;
+		}
+		
+		for(String parameter : parameters){
+			String nameValueArray[] = parameter.split("=");
+			if(nameValueArray == null || nameValueArray.length != 2){
+				continue; //Can this happen anyway?
+			}
+			
+			setParameterValue(nameValueArray[0], nameValueArray[1]);
+		}
+		
+		//Form Id value is set last when we are sure of the formIdName.
+		setFormId(parameters);
+	}
+	
+	/**
+	 * Sets the formId value from an array of url parameters.
+	 * 
+	 * @param parameters is the url parameter array.
+	 */
+	private static void setFormId(String[] parameters){
+		for(String parameter : parameters){
+			String nameValueArray[] = parameter.split("=");
+			if(nameValueArray == null || nameValueArray.length != 2){
+				continue; //Can this happen anyway?
+			}
+			
+			if(nameValueArray[0].equalsIgnoreCase(formIdName)){
+				formId = nameValueArray[1];
+				break;
+			}
+		}
+	}
+	
+	/**
+	 * Sets the value of a customization parameter.
+	 * 
+	 * @param name is the name of the parameter.
+	 * @param value is the value of the parameter;
+	 */
+	private static void setParameterValue(String name, String value){
+		//TODO Need to set more parameters. I started with only the urgently needed ones.
+		
+		if(PARAM_NAME_READONLY.equalsIgnoreCase(name))
+			readOnlyMode = fromString2Boolean(value);
+		
+		if(PARAM_NAME_REBUILD_BINDINGS.equalsIgnoreCase(name))
+			rebuildBindings = fromString2Boolean(value);
+		
+		if(PARAM_NAME_COMBINE_FORM_ON_SAVE.equalsIgnoreCase(name))
+			combineFormOnSave = fromString2Boolean(value);
+		
+		if(PARAM_NAME_FORM_ID_NAME.equalsIgnoreCase(name))
+			formIdName = value;
+		
+		if(PARAM_NAME_SAVE_FORMAT.equalsIgnoreCase(name))
+			saveFormat = value;
 	}
 
 	public static String getDivValue(String id){
@@ -659,6 +786,10 @@ public class FormUtil {
 	
 	public static boolean rebuildBindings(){
 		return rebuildBindings;
+	}
+	
+	public static boolean isReadOnlyMode(){
+		return readOnlyMode;
 	}
 
 	/**
