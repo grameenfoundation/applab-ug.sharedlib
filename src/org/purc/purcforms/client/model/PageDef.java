@@ -329,9 +329,11 @@ public class PageDef implements Serializable{
         if(qtnDef.getBinding().indexOf('/') == qtnDef.getBinding().lastIndexOf('/')){
             if(qtnDef.getDataNode() != null && qtnDef.getDataNode().getParentNode() != null)
                 qtnDef.getDataNode().getParentNode().removeChild(qtnDef.getDataNode());
-            if(qtnDef.getBindNode() != null && qtnDef.getBindNode().getParentNode() != null)
-                qtnDef.getBindNode().getParentNode().removeChild(qtnDef.getBindNode());
         }
+        
+        //for bindings we are safe to delete regardless of the level of nesting.
+        if(qtnDef.getBindNode() != null && qtnDef.getBindNode().getParentNode() != null)
+            qtnDef.getBindNode().getParentNode().removeChild(qtnDef.getBindNode());
 
         if(formDef != null){
             formDef.removeQtnFromRules(qtnDef);
