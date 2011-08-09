@@ -38,13 +38,12 @@ public class RelevantBuilder {
 	public static void fromSkipRule2Xform(SkipRule rule, FormDef formDef) {
 		String relevant = "";
 		Vector conditions = rule.getConditions();
-		for (int i = 0; i < conditions.size(); i++) {
-			if (relevant.length() > 0)
-				relevant += XformBuilderUtil.getConditionsOperatorText(rule
-						.getConditionsOperator());
-			relevant += fromSkipCondition2Xform(
-					(Condition) conditions.elementAt(i), formDef,
-					rule.getAction());
+		if(conditions == null)
+			return;
+		for(int i=0; i<conditions.size(); i++){
+			if(relevant.length() > 0)
+				relevant += XformBuilderUtil.getConditionsOperatorText(rule.getConditionsOperator());
+			relevant += fromSkipCondition2Xform((Condition)conditions.elementAt(i),formDef,rule.getAction());
 		}
 
 		Vector actionTargets = rule.getActionTargets();
@@ -62,12 +61,12 @@ public class RelevantBuilder {
 				node.removeAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT);
 				node.removeAttribute(XformConstants.ATTRIBUTE_NAME_ACTION);
 				node.removeAttribute(XformConstants.ATTRIBUTE_NAME_REQUIRED);
-			} else {
-				node.setAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT,
-						relevant);
+			}
+			else{
+				node.setAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT, relevant);
 
 				String value = XformConstants.ATTRIBUTE_VALUE_ENABLE;
-				if ((rule.getAction() & ModelConstants.ACTION_ENABLE) != 0)
+				if((rule.getAction() & ModelConstants.ACTION_ENABLE) != 0)
 					value = XformConstants.ATTRIBUTE_VALUE_ENABLE;
 				else if ((rule.getAction() & ModelConstants.ACTION_DISABLE) != 0)
 					value = XformConstants.ATTRIBUTE_VALUE_DISABLE;
@@ -89,41 +88,55 @@ public class RelevantBuilder {
 	/**
 	 * Creates an xforms representation of a skip rule condition.
 	 * 
-	 * @param condition
-	 *            the condition object.
-	 * @param formDef
-	 *            the form definition object to which the skip rule belongs.
-	 * @param action
-	 *            the skip rule action to its target questions.
+	 * @param condition the condition object.
+	 * @param formDef the form definition object to which the skip rule belongs.
+	 * @param action the skip rule action to its target questions.
 	 * @return the condition xforms representation.
 	 */
-	private static String fromSkipCondition2Xform(Condition condition,
-			FormDef formDef, int action) {
+	private static String fromSkipCondition2Xform(Condition condition, FormDef formDef, int action){
 		String relevant = null;
 
-		QuestionDef questionDef = formDef
-				.getQuestion(condition.getQuestionId());
+		QuestionDef questionDef = formDef.getQuestion(condition.getQuestionId());
 		if (questionDef != null) {
 			/*
 			 * relevant = questionDef.getBinding();
 			 * if(!relevant.contains(formDef.getBinding())) relevant = "/" +
 			 * formDef.getBinding() + "/" + questionDef.getBinding();
 			 */
+			 //the code above between the multiline comments was commented out and 
+			 // to fix a bug, the fix which appears below is different from the
+			 // one done by the purcforms developer.
 			relevant = getFullPath(questionDef, formDef,
 					questionDef.getBinding());
 
 			String value = " '" + condition.getValue() + "'";
-			if (questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN
-					|| questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL
-					|| questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC)
-				value = " " + condition.getValue();
-
-			relevant += " "
-					+ XformBuilderUtil.getXpathOperator(
-							condition.getOperator(), action) + value;
-		}
-		return relevant;
+			if(condition.getValue() != null && condition.getValue().trim().length() > 0){
+				if(questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN || questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL || questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC)
+					value = " " + condition.getValue();
+			     }
+				if(condition.getOperator() == ModelConstants.OPERATOR_BETWEEN)
+				    relevant += " " + XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action)+value + " and " + relevant + " " + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action) + " " + condition.getSecondValue();
+				else if(condition.getOperator() == ModelConstants.OPERATOR_NOT_BETWEEN)
+					relevant += " " + XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action) + " " + condition.getSecondValue() + " or " + relevant + " " + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action)+value ;
+				else if (condition.getOperator() == ModelConstants.OPERATOR_STARTS_WITH)
+					relevant += " starts-with(.,"+ value+")"; 
+				else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_START_WITH)
+					relevant += " not(starts-with(.,"+ value+"))";
+				else if (condition.getOperator() == ModelConstants.OPERATOR_ENDS_WITH)
+					relevant += " ends-with(.,"+ value+")"; 
+				else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_END_WITH)
+					relevant += " not(ends-with(.,"+ value+"))";
+				else if (condition.getOperator() == ModelConstants.OPERATOR_CONTAINS)
+					relevant += " contains(.,"+ value+")";
+				else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_CONTAIN)
+					relevant += " not(contains(.,"+ value+"))";
+				else
+					relevant += " " + XformBuilderUtil.getXpathOperator(condition.getOperator(),action)+value;
+				}
+			}
+				return relevant;
 	}
+
 
 	private static String getFullPath(QuestionDef questionDef, FormDef formDef,
 			String questionBinding) {
