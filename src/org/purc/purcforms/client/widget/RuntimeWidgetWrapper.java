@@ -36,8 +36,6 @@ import com.google.gwt.user.client.DeferredCommand;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
-import com.google.gwt.user.client.ui.ClickListener;
-import com.google.gwt.user.client.ui.FocusListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
@@ -69,7 +67,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 	/** Listener to edit events. */
 	protected EditListener editListener;
 	
-	/** Listener to widget events like hiding showing, etc. */
+	/** Listener to widget events like hinding showing, etc. */
 	protected WidgetListener widgetListener;
 
 	private ImageResource errorImageProto;
@@ -281,19 +279,19 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 					}
 				});
 			}
-			
+
 			((TextBox)widget).addClickHandler(new ClickHandler(){
 				public void onClick(ClickEvent event){
 					((TextBox)widget).selectAll();
 				}
 			});
-			
+
 			((TextBox)widget).addFocusHandler(new FocusHandler(){
 				public void onFocus(FocusEvent event){
 					((TextBox)widget).selectAll();
 				}
 			});
-	
+
 			addSuggestBoxChangeEvent();
 		}
 		else{
@@ -359,7 +357,9 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 						return;
 					}
 
-					((TextBox) event.getSource()).cancelKey(); 
+					((TextBox) event.getSource()).cancelKey();
+					
+					//Remove error icon.
 					while(panel.getWidgetCount() > 1)
 						panel.remove(1);
 
@@ -370,7 +370,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 
 						return;
 					}
-
+				
 					Label label = new Label("");
 					label.setVisible(false);
 					panel.add(label);
@@ -833,6 +833,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		}
 		else if(widget instanceof TextBox){
 			String answer = getTextBoxAnswer();
+
 			if(externalSource != null && externalSource.trim().length() > 0 /*&&
 					questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC*/){ //the internal save (non display) value needs to also work for non numerics.
 				//answer = null; //TODO This seems to cause some bugs where numeric questions seem un answered. 
@@ -843,6 +844,37 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 						answer = ((Label)wid).getText();
 					}
 				}
+				
+				/*if(panel.getWidgetCount() > 1 ){
+					Window.alert("before removing");
+					com.google.gwt.user.client.Element elem = panel.getWidget(1).getElement();
+					Window.alert("yayayya");
+					Element parent = DOM.getParent(elem);
+					Window.alert("just about=" + parent.getChildCount());
+					parent.removeChild(parent.getChild(0));
+					Window.alert("just about");
+					parent.appendChild(widget.getElement());
+					
+					//panel.remove(1);
+					Window.alert("removed");
+				}
+				else{
+					Window.alert("NOT removed =" + panel.getWidgetCount());
+					for(int index = 0; index < panel.getWidgetCount(); index++){
+						Widget w = panel.getWidget(index);
+						String s = "NODE";
+						if(w instanceof TextBox)
+							s = "TEXTBOX = " + ((TextBox)w).getText();
+						else if(w instanceof Label)
+							s = "LABEL = " + ((Label)w).getText();
+						else if(w instanceof Image)
+							s = "IMAGE";
+						
+						Window.alert(s);
+						
+						((TextBox)widget).setFocus(true);
+					}
+				}*/
 			}
 
 			questionDef.setAnswer(answer);
@@ -914,9 +946,9 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 					value = (((CheckBox)((RuntimeWidgetWrapper)childWidget).getWrappedWidget()).getValue() == true) ? QuestionDef.TRUE_VALUE : QuestionDef.FALSE_VALUE;
 			}
 			else{
-			for(int index=0; index < childWidgets.size(); index++){
-				RuntimeWidgetWrapper childWidget = childWidgets.get(index);
-				String binding = childWidget.getBinding();
+				for(int index=0; index < childWidgets.size(); index++){
+					RuntimeWidgetWrapper childWidget = childWidgets.get(index);
+					String binding = childWidget.getBinding();
 					if(((CheckBox)((RuntimeWidgetWrapper)childWidget).getWrappedWidget()).getValue() == true && binding != null){
 						if(value.length() != 0)
 							value += " ";
@@ -1133,7 +1165,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			((ListBox)widget).setFocus(true);
 		else if(widget instanceof TextArea){
 			((TextArea)widget).setFocus(true);
-			((TextArea)widget).selectAll();
+			((TextArea)widget).selectAll();	
 		}
 		else if(widget instanceof TextBox){
 			((TextBox)widget).setFocus(true);
