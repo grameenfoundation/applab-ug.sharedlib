@@ -46,6 +46,7 @@ public class WidgetEx extends Composite{
 	public static final String WIDGET_TYPE_VIDEO_AUDIO = "VideoAudio";
 	public static final String WIDGET_TYPE_TIME = "TimeWidget";
 	public static final String WIDGET_TYPE_DATETIME = "DateTimeWidget";
+	public static final String WIDGET_TYPE_LOGO = "Logo";
 	
 	public static final String WIDGET_PROPERTY_TOP = "Top";
 	public static final String WIDGET_PROPERTY_LEFT = "Left";
@@ -690,7 +691,7 @@ public class WidgetEx extends Composite{
 		height = getHeight();
 	}
 	
-	public void restorePosition(){
+	public void refreshPosition(){
 		setLeft(left);
 		setTop(top);
 		setWidth(width);
@@ -856,5 +857,15 @@ public class WidgetEx extends Composite{
 		html.getElement().setAttribute("style", style);	
 		((TabBar)widget).setTabHTML(((TabBar)widget).getSelectedTab(), html.toString().replace("div", "span"));
 		//System.out.println(((TabBar)widget).getTabHTML(((TabBar)widget).getSelectedTab()));	
+	}
+	
+	/**
+	 * Checks if the selected widget should have a parent binding property.
+	 * 
+	 * @return true if yes, else false.
+	 */
+	public boolean hasParentBinding(){
+		return (widget instanceof RadioButton) || (widget instanceof CheckBox)
+		|| (widget instanceof Button);
 	}
 }
