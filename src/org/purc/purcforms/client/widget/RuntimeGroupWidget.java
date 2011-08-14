@@ -1,16 +1,21 @@
 package org.purc.purcforms.client.widget;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+import java.util.Vector;
 
 import org.purc.purcforms.client.controller.OpenFileDialogEventListener;
 import org.purc.purcforms.client.controller.QuestionChangeListener;
 import org.purc.purcforms.client.locale.LocaleText;
+import org.purc.purcforms.client.model.Condition;
 import org.purc.purcforms.client.model.FormDef;
 import org.purc.purcforms.client.model.OptionDef;
 import org.purc.purcforms.client.model.QuestionDef;
 import org.purc.purcforms.client.model.RepeatQtnsDef;
+import org.purc.purcforms.client.model.SkipRule;
 import org.purc.purcforms.client.model.ValidationRule;
 import org.purc.purcforms.client.util.FormUtil;
 import org.purc.purcforms.client.view.FormRunnerView;
@@ -56,6 +61,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 	private RepeatQtnsDef repeatQtnsDef;
 	private HashMap<String,RuntimeWidgetWrapper> widgetMap = new HashMap<String,RuntimeWidgetWrapper>();
 	private EditListener editListener;
+	private WidgetListener widgetListener;
 	private FlexTable table;
 	private List<RuntimeWidgetWrapper> buttons = new ArrayList<RuntimeWidgetWrapper>();
 	private List<RuntimeWidgetWrapper> widgets = new ArrayList<RuntimeWidgetWrapper>();
@@ -84,12 +90,15 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 	 */
 	protected HashMap<QuestionDef,RuntimeWidgetWrapper> filtDynOptWidgetMap = new HashMap<QuestionDef,RuntimeWidgetWrapper>();
 
+	protected HashMap<PushButton, List<FormDef>> repeatRowFormMap = new HashMap<PushButton, List<FormDef>>();
 
-	public RuntimeGroupWidget(Images images,FormDef formDef,RepeatQtnsDef repeatQtnsDef,EditListener editListener, boolean isRepeated){
+
+	public RuntimeGroupWidget(Images images,FormDef formDef,RepeatQtnsDef repeatQtnsDef,EditListener editListener, WidgetListener widgetListener, boolean isRepeated){
 		this.images = images;
 		this.formDef = formDef;
 		this.repeatQtnsDef = repeatQtnsDef;
 		this.editListener = editListener;
+		this.widgetListener = widgetListener;
 		this.isRepeated = isRepeated;
 
 		if(isRepeated){
@@ -119,7 +128,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 				qtn = formDef.getQuestion(parentBinding);
 
 			if(qtn != null){
-				parentWrapper = new RuntimeWidgetWrapper(widget,images.error(),editListener);
+				parentWrapper = new RuntimeWidgetWrapper(widget, images.error(),editListener, widgetListener);
 				parentWrapper.setQuestionDef(qtn,true);
 				widgetMap.put(parentBinding, parentWrapper);
 				//addWidget(parentWrapper); //Misplaces first widget (with tabindex > 0) of a group (CheckBox and RadioButtons)
@@ -141,6 +150,8 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			HashMap<QuestionDef,RuntimeWidgetWrapper> filtDynOptWidgetMap){
 
 		HashMap<Integer,RuntimeWidgetWrapper> widgetMap = new HashMap<Integer,RuntimeWidgetWrapper>();
+		HashMap<Integer,RuntimeWidgetWrapper> labelWidgetMap = new HashMap<Integer,RuntimeWidgetWrapper>();
+		
 		int maxTabIndex = 0;
 
 		for(int i=0; i<nodes.getLength(); i++){
@@ -148,7 +159,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 				continue;
 			try{
 				Element node = (Element)nodes.item(i);
-				int index = loadWidget(formDef,node,widgetMap,externalSourceWidgets,calcQtnMappings, calcWidgetMap, filtDynOptWidgetMap);
+				int index = loadWidget(formDef,node,widgetMap,externalSourceWidgets,calcQtnMappings, calcWidgetMap, filtDynOptWidgetMap, labelWidgetMap);
 				if(index > maxTabIndex)
 					maxTabIndex = index;
 			}
@@ -157,6 +168,17 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			}
 		}
 
+		//Adding label headers
+		if(this.isRepeated){
+			int col = 0;
+			Set<Integer> keys = labelWidgetMap.keySet();	
+			Object[] keyArray = keys.toArray();
+			Arrays.sort(keyArray);
+			for(Object key : keyArray){
+				table.setWidget(0, col++, labelWidgetMap.get(key));
+			}
+		}
+		
 		//We are adding widgets to the panel according to the tab index.
 		for(int index = 0; index <= maxTabIndex; index++){
 			RuntimeWidgetWrapper widget = widgetMap.get(new Integer(index));
@@ -174,7 +196,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 						Element parent = (Element)dataNode.getParentNode();
 						NodeList nodeList = parent.getElementsByTagName(dataNode.getNodeName());*/
 
-						Element repeatDataNode = getParentNode(widget.getQuestionDef().getDataNode(),(widget.getWrappedWidget() instanceof CheckBox) ? widget.getParentBinding() : widget.getBinding());
+						Element repeatDataNode = getParentNode(widget.getQuestionDef().getDataNode(),(widget.getWrappedWidget() instanceof CheckBox) ? widget.getParentBinding() : widget.getBinding(), ((QuestionDef)widget.getQuestionDef().getParent()).getBinding());
 						Element parent = (Element)repeatDataNode.getParentNode();
 						NodeList nodeList = parent.getElementsByTagName(repeatDataNode.getNodeName());
 
@@ -191,7 +213,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			});	
 		}
 
-		//Now add the button widgets, if any.
+		//Now add the button and label widgets, if any.
 		if(isRepeated){
 			HorizontalPanel panel = new HorizontalPanel();
 			panel.setSpacing(5);
@@ -199,7 +221,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 				panel.add(buttons.get(index));
 			verticalPanel.add(panel);
 
-			addDeleteButton(0);
+			addDeleteButton(table.getRowCount() - 1);
 
 			FormUtil.maximizeWidget(panel);
 		}
@@ -213,7 +235,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 		}
 	}
 
-	private void addDeleteButton(int row){
+	private PushButton addDeleteButton(int row){
 		PushButton btn = new PushButton(LocaleText.get("deleteItem"));
 		btn.addClickHandler(new ClickHandler(){
 			public void onClick(ClickEvent event){
@@ -221,6 +243,8 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			}
 		});
 		table.setWidget(row, widgets.size(), btn);
+
+		return btn;
 	}
 
 
@@ -230,32 +254,47 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			return;
 		}
 
-		for(int row = 1; row < table.getRowCount(); row++){
+		int rowStartIndex = 1;
+		if(((RuntimeWidgetWrapper)table.getWidget(0, 0)).getWrappedWidget() instanceof Label)
+			rowStartIndex = 2;
+		
+		for(int row = rowStartIndex; row < table.getRowCount(); row++){
 			if(sender == table.getWidget(row, widgets.size())){
 
 				RuntimeWidgetWrapper wrapper = (RuntimeWidgetWrapper)getParent().getParent();
 				int y = getHeightInt();
 
 				table.removeRow(row);
-				Element node = dataNodes.get(row-1);
+				Element node = dataNodes.get(row-rowStartIndex);
 				node.getParentNode().removeChild(node);
 				dataNodes.remove(node);
 				if(btnAdd != null)
 					btnAdd.setEnabled(true);
 
-				editListener.onRowRemoved(wrapper,y-getHeightInt());
+				editListener.onRowRemoved(wrapper, y-getHeightInt());
 
 				RuntimeWidgetWrapper parent = (RuntimeWidgetWrapper)getParent().getParent();
 				ValidationRule validationRule = parent.getValidationRule();
-				if(validationRule != null)
+				if(validationRule != null){
 					parent.getQuestionDef().setAnswer(table.getRowCount()+"");
+					
+					//Add error message
+					if(getParent().getParent() instanceof RuntimeWidgetWrapper)
+						((RuntimeWidgetWrapper)getParent().getParent()).isValid(true);
+				}
+
+				List<FormDef> forms = repeatRowFormMap.get(sender);
+				if(forms != null){
+					for(FormDef formDef : forms)
+						((FormRunnerView)editListener).removeRepeatQtnFormDef(formDef);
+				}
 			}
 		}
 	}
 
 	private int loadWidget(FormDef formDef, Element node,HashMap<Integer,RuntimeWidgetWrapper> widgets, List<RuntimeWidgetWrapper> externalSourceWidgets,
 			HashMap<QuestionDef,List<QuestionDef>> calcQtnMappings,HashMap<QuestionDef,List<RuntimeWidgetWrapper>> calcWidgetMap,
-			HashMap<QuestionDef,RuntimeWidgetWrapper> filtDynOptWidgetMap){
+			HashMap<QuestionDef,RuntimeWidgetWrapper> filtDynOptWidgetMap, HashMap<Integer,RuntimeWidgetWrapper> labelWidgetMap){
 
 		RuntimeWidgetWrapper parentWrapper = null;
 
@@ -387,6 +426,10 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 				xpath = "/" + formDef.getBinding() + "/" + binding;
 			((Image)widget).setUrl(URL.encode(FormUtil.getMultimediaUrl()+"?formId="+formDef.getId()+"&xpath="+xpath+"&time="+ new java.util.Date().getTime()));
 		}
+		else if(s.equalsIgnoreCase(WidgetEx.WIDGET_TYPE_LOGO)){
+			widget = new Image();
+			((Image)widget).setUrl(URL.encode(FormUtil.getHostPageBaseURL() + node.getAttribute(WidgetEx.WIDGET_PROPERTY_EXTERNALSOURCE)));
+		}
 		else if(s.equalsIgnoreCase(WidgetEx.WIDGET_TYPE_VIDEO_AUDIO) && questionDef != null){
 			widget = new HTML();
 			String xpath = binding;
@@ -417,7 +460,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			if(value != null && value.trim().length() > 0)
 				repeated = (value.equals(WidgetEx.REPEATED_TRUE_VALUE));
 
-			widget = new RuntimeGroupWidget(images,formDef,repeatQtnsDef,editListener,repeated);
+			widget = new RuntimeGroupWidget(images, formDef, repeatQtnsDef, editListener, widgetListener, repeated);
 			((RuntimeGroupWidget)widget).loadWidgets(formDef,node.getChildNodes(),externalSourceWidgets,calcQtnMappings,calcWidgetMap,filtDynOptWidgetMap);
 			/*getLabelMap(((RuntimeGroupWidget)widget).getLabelMap());
 			getLabelText(((RuntimeGroupWidget)widget).getLabelText());
@@ -434,7 +477,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			return tabIndex;
 
 		if(!wrapperSet){
-			wrapper = new RuntimeWidgetWrapper(widget,images.error(),editListener);
+			wrapper = new RuntimeWidgetWrapper(widget, images.error(), editListener, widgetListener);
 
 			if(parentWrapper != null){ //Check box or radio button
 				if(!parentWrapper.getQuestionDef().isVisible())
@@ -521,7 +564,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 				loadWidget = false;
 			}
 		}*/
-		
+
 		value = node.getAttribute(WidgetEx.WIDGET_PROPERTY_VALUEFIELD);
 		if(value != null && value.trim().length() > 0){
 			wrapper.setValueField(value);
@@ -544,7 +587,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 
 		if(loadWidget)
 			wrapper.loadQuestion();
-		
+
 		wrapper.setExternalSourceDisplayValue();
 
 		value = node.getAttribute(WidgetEx.WIDGET_PROPERTY_HEIGHT);
@@ -567,6 +610,8 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 
 		if(tabIndex > 0 && !(wrapper.getWrappedWidget() instanceof Button))
 			widgets.put(new Integer(tabIndex), wrapper);
+		else if (wrapper.getWrappedWidget() instanceof Label && this.isRepeated)
+			labelWidgetMap.put(new Integer(wrapper.getLeftInt()), wrapper);
 		else
 			addWidget(wrapper);
 
@@ -577,7 +622,8 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			//wrapper.setParentBinding(parentBinding);
 
 			if(binding.equals("addnew")||binding.equals("remove") || binding.equals("submit") ||
-					binding.equals("browse")||binding.equals("clear")||binding.equals("cancel")||binding.equals("search")){
+					binding.equals("browse")||binding.equals("clear")||binding.equals("cancel") ||
+					binding.equals("search") || binding.equals("nextPage")||binding.equals("prevPage")){
 				((Button)widget).addClickHandler(new ClickHandler(){
 					public void onClick(ClickEvent event){
 						execute((Widget)event.getSource());
@@ -617,8 +663,18 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			widgets.add(wrapper);
 
 			int row = 0 , col = 0;
-			if(table.getRowCount() > 0)
-				col = table.getCellCount(row);
+			if(table.getRowCount() > 0){
+				if(((RuntimeWidgetWrapper)table.getWidget(0, 0)).getWrappedWidget() instanceof Label){
+					row = 1;
+					if(table.getRowCount() == 1)
+						col = 0;
+					else
+						col = table.getCellCount(row);
+				}
+				else{
+					col = table.getCellCount(row);
+				}
+			}
 
 			table.setWidget(row, col, wrapper);
 		}
@@ -641,6 +697,10 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			((FormRunnerView)getParent().getParent().getParent().getParent().getParent().getParent().getParent()).onSubmit();
 		else if(binding.equalsIgnoreCase("cancel"))
 			((FormRunnerView)getParent().getParent().getParent().getParent().getParent().getParent().getParent()).onCancel();
+		else if(binding.equalsIgnoreCase("nextPage"))
+			((FormRunnerView)getParent().getParent().getParent().getParent().getParent().getParent().getParent()).nextPage();
+		else if(binding.equalsIgnoreCase("prevPage"))
+			((FormRunnerView)getParent().getParent().getParent().getParent().getParent().getParent().getParent()).prevPage();
 		else if(repeatQtnsDef != null){
 			if(binding.equalsIgnoreCase("addnew")){
 				RuntimeWidgetWrapper wrapper = (RuntimeWidgetWrapper)getParent().getParent();
@@ -757,21 +817,33 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 
 		RuntimeWidgetWrapper firstWidget = null;
 		Element newRepeatDataNode = null;
+		String parentRptBinding = null;
 		int row = table.getRowCount();
+
+		List<Integer> qtnIds = new ArrayList<Integer>();
+		List<QuestionDef> qtns = new ArrayList<QuestionDef>();
+
 		for(int index = 0; index < widgets.size(); index++){
 			RuntimeWidgetWrapper mainWidget = widgets.get(index);
 			RuntimeWidgetWrapper copyWidget = getPreparedWidget(mainWidget,false);
+
+			if(mainWidget.getQuestionDef() == null && (mainWidget.getWrappedWidget() instanceof CheckBox)){
+				parentRptBinding = ((QuestionDef)widgets.get(0).getQuestionDef().getParent()).getBinding();
+				copyWidget.setQuestionDef(new QuestionDef(widgets.get(0).questionDef, widgets.get(0).questionDef.getParent()), false);
+			}
+			else
+				parentRptBinding = ((QuestionDef)mainWidget.getQuestionDef().getParent()).getBinding();
 
 			//table.setWidget(row, index, copyWidget);
 
 			if(index == 0){
 				Element dataNode = mainWidget.getQuestionDef().getDataNode();
 				if(dataNode == null){
-					Window.alert("Please first save the form"); //LocaleText.get("?????");
+					Window.alert("Please first save the form, and then refresh the Preview surface."); //LocaleText.get("?????");
 					return; //possibly form not yet saved
 				}
 
-				Element repeatDataNode = getParentNode(dataNode,(mainWidget.getWrappedWidget() instanceof CheckBox) ? mainWidget.getParentBinding() : mainWidget.getBinding());
+				Element repeatDataNode = getParentNode(dataNode,(mainWidget.getWrappedWidget() instanceof CheckBox) ? mainWidget.getParentBinding() : mainWidget.getBinding(), parentRptBinding);
 				newRepeatDataNode = (Element)repeatDataNode.cloneNode(true);
 				repeatDataNode.getParentNode().appendChild(newRepeatDataNode);
 				//workonDefaults(newRepeatDataNode);
@@ -782,7 +854,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 
 			table.setWidget(row, index, copyWidget);
 
-			setDataNode(copyWidget,newRepeatDataNode,copyWidget.getBinding(),false);
+			setDataNode(copyWidget,newRepeatDataNode,copyWidget.getBinding(),false, parentRptBinding);
 
 			//For now we do not allow default values for repeat kids to simplify implementation.
 			copyWidget.getQuestionDef().setDefaultValue(null);
@@ -801,9 +873,14 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 				}
 				widget.addChildWidget(copyWidget);
 			}
+
+			copyWidget.getQuestionDef().addChangeListener(copyWidget);
+			qtnIds.add(copyWidget.getQuestionDef().getId());
+			qtns.add(copyWidget.getQuestionDef());
 		}
 
-		addDeleteButton(row);
+		PushButton deleteButton = addDeleteButton(row);
+		copySkipRules(qtnIds, qtns, deleteButton);
 
 		btnAdd = (Button)sender;
 		RuntimeWidgetWrapper parent = (RuntimeWidgetWrapper)getParent().getParent();
@@ -811,8 +888,13 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 		if(validationRule != null){
 			row++;
 			parent.getQuestionDef().setAnswer(row+"");
-			if(validationRule.getMaxValue(formDef) == row)
+			if(validationRule.getMaxValue(formDef) == row){
 				((Button)sender).setEnabled(false);
+				
+				//Remove error message.
+				if(getParent().getParent() instanceof RuntimeWidgetWrapper)
+					((RuntimeWidgetWrapper)getParent().getParent()).isValid(true);
+			}
 		}
 
 		if(firstWidget != null)
@@ -833,20 +915,24 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 
 			table.setWidget(row, index, copyWidget);
 
-			setDataNode(copyWidget,dataNode,copyWidget.getBinding(),true);
+			setDataNode(copyWidget,dataNode,copyWidget.getBinding(),true, ((QuestionDef)mainWidget.getQuestionDef().getParent()).getBinding());
 		}
 
 		addDeleteButton(row);
 	}
 
-	private Element getParentNode(Node node, String binding){	
+	private Element getParentNode(Node node, String binding, String parentBinding){	
 		String name = binding;
-		int pos = binding.indexOf('/');
-		if(pos > 0){
-			name = binding.substring(0, pos);
-			int pos2 = binding.lastIndexOf('/');
-			if(pos != pos2)
-				return (Element)node.getParentNode(); //name = binding.substring(pos+1, pos2);
+		if(parentBinding != null && binding.startsWith(parentBinding) && binding.indexOf('/', parentBinding.length() + 1) > 0)
+			name = binding.substring(parentBinding.length() + 1, binding.indexOf('/', parentBinding.length() + 1));
+		else{
+			int pos = binding.indexOf('/');
+			if(pos > 0){
+				name = binding.substring(0, pos);
+				int pos2 = binding.lastIndexOf('/');
+				if(pos != pos2)
+					return (Element)node.getParentNode(); //name = binding.substring(pos+1, pos2);
+			}
 		}
 
 		return getParentNodeWithName(node,name);
@@ -861,20 +947,29 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 		return getParentNodeWithName(parentNode,name);
 	}
 
-	private void setDataNode(RuntimeWidgetWrapper widget, Element parentNode, String binding, boolean loadQtn){
+	private void setDataNode(RuntimeWidgetWrapper widget, Element parentNode, String binding, boolean loadQtn, String parentBinding){
 		if(widget.getQuestionDef() == null)
 			return; //for checkboxes, only the first may have reference to the parent questiondef
 
-		String name = (widget.getWrappedWidget() instanceof CheckBox) ? widget.getParentBinding() : binding;
-		int pos = name.indexOf('/');
-		if(pos > 0){
-			int pos2 = name.lastIndexOf('/');
-			if(pos != pos2){
-				name = name.substring(pos2+1);
-				pos = -1;
+		String name = null;
+		int pos = 0;
+		if(parentBinding != null && binding.startsWith(parentBinding) && binding.indexOf('/', parentBinding.length() + 1) > 0){
+			name = binding.substring(parentBinding.length() + 1);
+			String s = name.substring(0, name.indexOf('/'));
+			parentNode = XmlUtil.getNode(parentNode, s);
+		}
+		else{
+			name = (widget.getWrappedWidget() instanceof CheckBox) ? widget.getParentBinding() : binding;
+			pos = name.indexOf('/');
+			if(pos > 0){
+				int pos2 = name.lastIndexOf('/');
+				if(pos != pos2){
+					name = name.substring(pos2+1);
+					pos = -1;
+				}
+				else
+					name = name.substring(0, pos);
 			}
-			else
-				name = name.substring(0, pos);
 		}
 
 		NodeList nodes = parentNode.getChildNodes();
@@ -887,7 +982,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			if(child.getNodeName().equals(name) /*||
 					(child.getParentNode().getNodeName() + "/"+ child.getNodeName()).equals(widget.getBinding())*/){
 				if(pos > 0)
-					setDataNode(widget,(Element)child,binding.substring(pos+1),loadQtn);
+					setDataNode(widget,(Element)child,binding.substring(pos+1),loadQtn, parentBinding);
 				else{
 					widget.getQuestionDef().setDataNode((Element)child);
 					if(loadQtn){
@@ -1034,6 +1129,10 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 
 			for(int col = 0; col < table.getCellCount(0)-1; col++)
 				((RuntimeWidgetWrapper)table.getWidget(0, col)).clearValue();
+
+			//TODO Causes an infinite loop for repeat questions having skip logic that refers
+			//     to non repeat children.
+			//((FormRunnerView)editListener).fireSkipRules();
 		}
 		else{
 			for(int index = 0; index < selectedPanel.getWidgetCount(); index++)
@@ -1065,7 +1164,7 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 					if(firstInvalidWidget == null && widget.isFocusable())
 						firstInvalidWidget = widget.getInvalidWidget();
 				}
-				
+
 				if(fireValueChanged && widget.getQuestionDef() != null)
 					editListener.onValueChanged(widget);
 			}
@@ -1235,4 +1334,115 @@ public class RuntimeGroupWidget extends Composite implements OpenFileDialogEvent
 			workonDefaults(child);
 		}
 	}*/
+
+	public void copySkipRules(List<Integer> qtnIds, List<QuestionDef> qtns, PushButton deleteButton){
+		List<FormDef> forms = new ArrayList<FormDef>();
+
+		Vector rules = formDef.getSkipRules();
+		if(rules != null){
+			for(int i=0; i<rules.size(); i++){
+				SkipRule rule = (SkipRule)rules.elementAt(i);
+
+				for(int k = 0; k < rule.getConditionCount(); k++){
+					Condition condition = rule.getConditionAt(k);
+					if(qtnIds.contains(condition.getQuestionId())){
+						SkipRule skipRule = new SkipRule(rule);	
+						FormDef formDef = new FormDef();
+						formDef.addSkipRule(skipRule);
+						forms.add(formDef);
+
+						for(QuestionDef qtn : qtns)
+							formDef.addQuestion(qtn);
+
+						skipRule.fire(formDef);
+
+						break;
+					}
+				}
+			}
+		}
+
+		for(FormDef form : forms)
+			((FormRunnerView)editListener).addRepeatQtnFormDef(form);
+
+		if(forms.size() > 0)
+			repeatRowFormMap.put(deleteButton, forms);
+	}
+
+	public boolean isAnyWidgetVisible(){
+		if(isRepeated){
+			for(int row = 0; row < table.getRowCount(); row++){
+				for(int col = 0; col < table.getCellCount(row)-1; col++){
+					RuntimeWidgetWrapper widget = (RuntimeWidgetWrapper)table.getWidget(row, col);
+					if(widget.isVisible() && widget.isFocusable()){
+						return true;
+					}
+				}
+			}
+		}
+		else{
+			for(int index = 0; index < selectedPanel.getWidgetCount(); index++){
+				RuntimeWidgetWrapper widget = (RuntimeWidgetWrapper)selectedPanel.getWidget(index);
+				if(widget.isVisible() && widget.isFocusable()){
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	public int getHeaderHeight(){
+		if(isRepeated)
+			return 0;
+
+		RuntimeWidgetWrapper headerLabel = (RuntimeWidgetWrapper)selectedPanel.getWidget(0);
+		return headerLabel.getHeightInt();
+	}
+
+	public void onWidgetHidden(RuntimeWidgetWrapper widget, int decrement){
+		Widget parent = getParent().getParent();
+		if(parent instanceof RuntimeGroupWidget){
+			RuntimeGroupWidget groupWidget = (RuntimeGroupWidget)parent;
+			RuntimeWidgetWrapper wrapper = (RuntimeWidgetWrapper)groupWidget.getParent().getParent();
+			groupWidget.onWidgetHidden(wrapper, decrement);
+		}
+
+		int bottomYpos = widget.getTopInt();
+
+		if(!isRepeated){
+			for(int index = 0; index < selectedPanel.getWidgetCount(); index++){
+				RuntimeWidgetWrapper currentWidget = (RuntimeWidgetWrapper)selectedPanel.getWidget(index);
+				if(currentWidget == widget)
+					continue;
+
+				int top = currentWidget.getTopInt();
+				if(top >= bottomYpos)
+					currentWidget.setTopInt(top - decrement);
+			}
+		}
+	}
+
+	public void onWidgetShown(RuntimeWidgetWrapper widget, int increment){
+		Widget parent = getParent().getParent();
+		if(parent instanceof RuntimeGroupWidget){
+			RuntimeGroupWidget groupWidget = (RuntimeGroupWidget)parent;
+			RuntimeWidgetWrapper wrapper = (RuntimeWidgetWrapper)groupWidget.getParent().getParent();
+			groupWidget.onWidgetShown(wrapper, increment);
+		}
+
+		int bottomYpos = widget.getTopInt();
+
+		if(!isRepeated){
+			for(int index = 0; index < selectedPanel.getWidgetCount(); index++){
+				RuntimeWidgetWrapper currentWidget = (RuntimeWidgetWrapper)selectedPanel.getWidget(index);
+				if(currentWidget == widget)
+					continue;
+
+				int top = currentWidget.getTopInt();
+				if(top >= bottomYpos)
+					currentWidget.setTopInt(top + increment);
+			}
+		}
+	}
 }
