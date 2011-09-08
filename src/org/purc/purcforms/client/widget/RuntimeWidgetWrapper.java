@@ -36,6 +36,8 @@ import com.google.gwt.user.client.DeferredCommand;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.ClickListener;
+import com.google.gwt.user.client.ui.FocusListener;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Label;
@@ -66,9 +68,6 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 
 	/** Listener to edit events. */
 	protected EditListener editListener;
-	
-	/** Listener to widget events like hinding showing, etc. */
-	protected WidgetListener widgetListener;
 
 	private ImageResource errorImageProto;
 
@@ -110,14 +109,13 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		}
 	}
 
-	public RuntimeWidgetWrapper(Widget widget, ImageResource errorImageProto, EditListener editListener, WidgetListener widgetListener){
+	public RuntimeWidgetWrapper(Widget widget,ImageResource errorImageProto,EditListener editListener){
 		this.widget = widget;
 
 		if(!(widget instanceof TabBar)){
 			this.errorImageProto = errorImageProto;
 			this.errorImage = FormUtil.createImage(errorImageProto);
 			this.editListener = editListener;
-			this.widgetListener = widgetListener;
 
 			panel.add(widget);
 			initWidget(panel);
@@ -279,19 +277,19 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 					}
 				});
 			}
-
+			
 			((TextBox)widget).addClickHandler(new ClickHandler(){
 				public void onClick(ClickEvent event){
 					((TextBox)widget).selectAll();
 				}
 			});
-
+			
 			((TextBox)widget).addFocusHandler(new FocusHandler(){
 				public void onFocus(FocusEvent event){
 					((TextBox)widget).selectAll();
 				}
 			});
-
+	
 			addSuggestBoxChangeEvent();
 		}
 		else{
@@ -357,9 +355,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 						return;
 					}
 
-					((TextBox) event.getSource()).cancelKey();
-					
-					//Remove error icon.
+					((TextBox) event.getSource()).cancelKey(); 
 					while(panel.getWidgetCount() > 1)
 						panel.remove(1);
 
@@ -370,7 +366,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 
 						return;
 					}
-				
+
 					Label label = new Label("");
 					label.setVisible(false);
 					panel.add(label);
@@ -485,9 +481,9 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			listBox.setSelectedIndex(0);
 
 			if(defaultValue != null){
-				if(defaultValue.trim().equalsIgnoreCase(QuestionDef.TRUE_VALUE))
+				if(defaultValue.equalsIgnoreCase(QuestionDef.TRUE_VALUE))
 					listBox.setSelectedIndex(1);
-				else if(defaultValue.trim().equalsIgnoreCase(QuestionDef.FALSE_VALUE))
+				else if(defaultValue.equalsIgnoreCase(QuestionDef.FALSE_VALUE))
 					listBox.setSelectedIndex(2);
 			}
 		}
@@ -507,13 +503,6 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 				((DateTimeWidget)widget).setText(defaultValue);
 			}
 		}
-		else if(type == QuestionDef.QTN_TYPE_BOOLEAN && defaultValue != null 
-				&& defaultValue.trim().length() > 0 && binding != null 
-				&& binding.trim().length() > 0 && widget instanceof CheckBox){
-			
-			if(defaultValue.trim().equalsIgnoreCase(QuestionDef.TRUE_VALUE))
-				((CheckBox)widget).setValue(true);
-		}
 
 
 		if(widget instanceof TextBoxBase){
@@ -531,18 +520,6 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 					else if(defaultValue.trim().length() > 0 && questionDef.isDate())
 						defaultValue = fromSubmit2DisplayDate(defaultValue);
 
-					if(defaultValue != null && type == QuestionDef.QTN_TYPE_NUMERIC){
-						int pos = defaultValue.indexOf('.');
-						if(pos > 0)
-							defaultValue = defaultValue.substring(0, pos);
-					}
-
-					if(defaultValue != null && questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL)
-						defaultValue = defaultValue.replace(FormUtil.SAVE_DECIMAL_SEPARATOR, FormUtil.getDecimalSeparator());	
-
-					if(defaultValue != null)
-						defaultValue = defaultValue.trim();
-					
 					((TextBoxBase)widget).setText(defaultValue);
 
 					setExternalSourceDisplayValue();
@@ -833,48 +810,15 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		}
 		else if(widget instanceof TextBox){
 			String answer = getTextBoxAnswer();
-
 			if(externalSource != null && externalSource.trim().length() > 0 /*&&
 					questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC*/){ //the internal save (non display) value needs to also work for non numerics.
 				//answer = null; //TODO This seems to cause some bugs where numeric questions seem un answered. 
 
-				if(panel.getWidgetCount() > 1 && answer != null && answer.trim().length() > 0){
+				if(panel.getWidgetCount() == 2){
 					Widget wid = panel.getWidget(1);
-					if(wid instanceof Label){
+					if(wid instanceof Label)
 						answer = ((Label)wid).getText();
-					}
 				}
-				
-				/*if(panel.getWidgetCount() > 1 ){
-					Window.alert("before removing");
-					com.google.gwt.user.client.Element elem = panel.getWidget(1).getElement();
-					Window.alert("yayayya");
-					Element parent = DOM.getParent(elem);
-					Window.alert("just about=" + parent.getChildCount());
-					parent.removeChild(parent.getChild(0));
-					Window.alert("just about");
-					parent.appendChild(widget.getElement());
-					
-					//panel.remove(1);
-					Window.alert("removed");
-				}
-				else{
-					Window.alert("NOT removed =" + panel.getWidgetCount());
-					for(int index = 0; index < panel.getWidgetCount(); index++){
-						Widget w = panel.getWidget(index);
-						String s = "NODE";
-						if(w instanceof TextBox)
-							s = "TEXTBOX = " + ((TextBox)w).getText();
-						else if(w instanceof Label)
-							s = "LABEL = " + ((Label)w).getText();
-						else if(w instanceof Image)
-							s = "IMAGE";
-						
-						Window.alert(s);
-						
-						((TextBox)widget).setFocus(true);
-					}
-				}*/
 			}
 
 			questionDef.setAnswer(answer);
@@ -933,27 +877,17 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			questionDef.setAnswer(value);
 		}
 		else if(widget instanceof CheckBox){
-			if(childWidgets == null || !(questionDef.getDataType() == QuestionDef.QTN_TYPE_LIST_MULTIPLE ||
-					questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN)){
+			if(questionDef.getDataType() != QuestionDef.QTN_TYPE_LIST_MULTIPLE || childWidgets == null)
 				return;
-			}
 
 			String value = "";
-			if(questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN){
-				RuntimeWidgetWrapper childWidget = childWidgets.get(0);
+			for(int index=0; index < childWidgets.size(); index++){
+				RuntimeWidgetWrapper childWidget = childWidgets.get(index);
 				String binding = childWidget.getBinding();
-				if(binding != null)
-					value = (((CheckBox)((RuntimeWidgetWrapper)childWidget).getWrappedWidget()).getValue() == true) ? QuestionDef.TRUE_VALUE : QuestionDef.FALSE_VALUE;
-			}
-			else{
-				for(int index=0; index < childWidgets.size(); index++){
-					RuntimeWidgetWrapper childWidget = childWidgets.get(index);
-					String binding = childWidget.getBinding();
-					if(((CheckBox)((RuntimeWidgetWrapper)childWidget).getWrappedWidget()).getValue() == true && binding != null){
-						if(value.length() != 0)
-							value += " ";
-						value += binding;
-					}
+				if(((CheckBox)((RuntimeWidgetWrapper)childWidget).getWrappedWidget()).getValue() == true && binding != null){
+					if(value.length() != 0)
+						value += " ";
+					value += binding;
 				}
 			}
 
@@ -1066,13 +1000,6 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		}
 
 		if(questionDef.isRequired() && !this.isAnswered()){
-			
-			//Clear the value widget, if any, for external source widgets.
-			if(externalSource != null && externalSource.trim().length() > 0){
-				while(panel.getWidgetCount() > 1)
-					panel.remove(1);
-			}
-			
 			if(panel.getWidgetCount() < 2)
 				panel.add(errorImage);
 
@@ -1165,12 +1092,11 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			((ListBox)widget).setFocus(true);
 		else if(widget instanceof TextArea){
 			((TextArea)widget).setFocus(true);
-			((TextArea)widget).selectAll();	
+			((TextArea)widget).selectAll();
 		}
 		else if(widget instanceof TextBox){
 			((TextBox)widget).setFocus(true);
 			((TextBox)widget).selectAll();
-			((TextBox)panel.getWidget(0)).setFocus(true);
 		}
 		else if(widget instanceof DateTimeWidget)
 			((DateTimeWidget)widget).setFocus(true);
@@ -1204,14 +1130,8 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 		else if(widget instanceof RuntimeGroupWidget)
 			((RuntimeGroupWidget)widget).clearValue();
 
-		if(questionDef != null){
+		if(questionDef != null)
 			questionDef.setAnswer(null);
-
-			//Clear value for external source widgets.
-			//if(panel.getWidgetCount() == 2)
-			while(panel.getWidgetCount() > 1)
-				panel.remove(1);
-		}
 	}
 
 	/**
@@ -1255,13 +1175,6 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 			clearValue();
 
 		setVisible(visible);
-		
-		if(widgetListener != null && isFocusable()){
-			if(visible)
-				widgetListener.onWidgetShown(this, getHeightInt());
-			else
-				widgetListener.onWidgetHidden(this, getHeightInt());
-		}
 	}
 
 	/**
@@ -1365,8 +1278,7 @@ public class RuntimeWidgetWrapper extends WidgetEx implements QuestionChangeList
 	}
 
 	public boolean isEditable(){
-		return (widget instanceof TextBox || widget instanceof TextArea || widget instanceof ListBox || 
-				widget instanceof CheckBox || widget instanceof DateTimeWidget || widget instanceof TimeWidget);
+		return (widget instanceof TextBox || widget instanceof TextArea || widget instanceof ListBox || widget instanceof CheckBox);
 	}
 
 	public void setId(String id){

@@ -7,7 +7,6 @@ import java.util.Vector;
 import org.purc.purcforms.client.model.Condition;
 import org.purc.purcforms.client.model.FormDef;
 import org.purc.purcforms.client.model.ModelConstants;
-import org.purc.purcforms.client.model.OptionDef;
 import org.purc.purcforms.client.model.QuestionDef;
 import org.purc.purcforms.client.model.SkipRule;
 
@@ -47,12 +46,6 @@ public class RelevantParser {
 			QuestionDef qtn = (QuestionDef)keys.next();
 			String relevant = (String)relevants.get(qtn);
 
-			if(relevant.startsWith("("))
-				relevant = relevant.substring(1);
-			
-			if(relevant.endsWith(")") && !QuestionDef.isDateFunction(relevant))
-				relevant = relevant.substring(0, relevant.length() - 1);
-			
 			//If there is a skip rule with the same relevant as the current
 			//then just add this question as another action target to the skip
 			//rule instead of creating a new skip rule.

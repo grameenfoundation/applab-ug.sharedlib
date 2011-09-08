@@ -66,12 +66,6 @@ public class ConstraintParser {
      */
     private static ValidationRule buildValidationRule(FormDef formDef, int questionId, String constraint){
 
-		if(constraint.startsWith("("))
-			constraint = constraint.substring(1);
-		
-		if(constraint.endsWith(")") && !QuestionDef.isDateFunction(constraint))
-			constraint = constraint.substring(0, constraint.length() - 1);
-		
         ValidationRule validationRule = new ValidationRule(questionId,formDef);
         validationRule.setConditions(getValidationRuleConditions(formDef,constraint,questionId));
         validationRule.setConditionsOperator(XformParserUtil.getConditionsOperator(constraint));

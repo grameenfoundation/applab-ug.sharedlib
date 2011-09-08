@@ -36,7 +36,7 @@ public class SkipRule implements Serializable{
 	private Vector actionTargets;
 		
 	/** Operator for combining more than one condition. (And, Or) only these two for now. */
-	private int conditionsOperator = ModelConstants.CONDITIONS_OPERATOR_AND;
+	private int conditionsOperator = ModelConstants.CONDITIONS_OPERATOR_NULL;
 	
 		
 	/** Constructs a rule object ready to be initialized. */
@@ -169,7 +169,6 @@ public class SkipRule implements Serializable{
 		for(int i=0; i<conditions.size(); i++){
 			Condition cond = (Condition)conditions.elementAt(i);
 			if(cond.getId() == condition.getId()){
-				//cond.removeBindingChangeListeners(); //TODO This is buggy.
 				conditions.remove(i);
 				conditions.add(condition);
 				break;
@@ -182,16 +181,12 @@ public class SkipRule implements Serializable{
 		conditions.remove(condition);
 	}
 	
-	public void removeActionTargetXformData(QuestionDef questionDef){
+	public void removeActionTarget(QuestionDef questionDef){
+		
 		if(questionDef.getBindNode() != null){
 			questionDef.getBindNode().removeAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT);
 			questionDef.getBindNode().removeAttribute(XformConstants.ATTRIBUTE_NAME_ACTION);
 		}
-	}
-	
-	public void removeActionTarget(QuestionDef questionDef){
-		
-		removeActionTargetXformData(questionDef);
 		
 		for(int index = 0; index < getActionTargetCount(); index++){
 			Integer id = getActionTargetAt(index);
@@ -254,10 +249,7 @@ public class SkipRule implements Serializable{
 	
 	/** Executes the rule action on the supplied question. */
 	public void ExecuteAction(QuestionDef qtn,boolean conditionTrue){
-		if(qtn == null)
-			return;
-		
-		//qtn.setVisible(true);
+		qtn.setVisible(true);
 		qtn.setEnabled(true);
 		qtn.setRequired(false);
 		
@@ -287,7 +279,7 @@ public class SkipRule implements Serializable{
 	}
 	
 	public void updateDoc(FormDef formDef){
-		RelevantBuilder.fromSkipRule2Xform(this, formDef);
+		RelevantBuilder.fromSkipRule2Xform(this,formDef);
 	}
 	
 	public void refresh(FormDef dstFormDef, FormDef srcFormDef){

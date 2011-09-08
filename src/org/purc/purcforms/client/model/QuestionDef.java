@@ -675,11 +675,11 @@ public class QuestionDef implements Serializable{
                 if(controlNode != null){
                     OptionDef optnDef = getNextSavedOption(list,i); //(OptionDef)list.get(i);
                     if(optnDef.getControlNode() != null && optionDef.getControlNode() != null)
-						controlNode.insertBefore(optionDef.getControlNode(), optnDef.getControlNode());
-					else if(optionDef.getControlNode() != null)
-						controlNode.appendChild(optionDef.getControlNode());
-				}
-			}
+                        controlNode.insertBefore(optionDef.getControlNode(), optnDef.getControlNode());
+                    else
+                        controlNode.appendChild(optionDef.getControlNode());
+                }
+            }
             optns.add(list.get(i));
         }
 
@@ -734,14 +734,13 @@ public class QuestionDef implements Serializable{
             if(!binding.startsWith("/"+ formDef.getBinding()+"/") && appendParentBinding){
                 //if(!binding.contains("/"+ formDef.getVariableName()+"/"))
                 if(!binding.startsWith(formDef.getBinding()+"/")){
-					if(parentBinding != null && !binding.contains("/"))
-						binding = "/"+ formDef.getBinding()+"/" + parentBinding + "/" + binding;
-					else{
-						binding = "/"+ formDef.getBinding() + (binding.startsWith("/") ? "" : "/") + binding;
-					}
-				}
-				else{
-					this.binding = "/" + this.binding; //correct user binding syntax error
+                    if(parentBinding != null && !binding.contains("/"))
+                        binding = "/"+ formDef.getBinding()+"/" + parentBinding + "/" + binding;
+                    else
+                        binding = "/"+ formDef.getBinding()+"/" + binding;
+                }
+                else{
+                    this.binding = "/" + this.binding; //correct user binding syntax error
                     binding = this.binding;
                 }
             }
@@ -1163,28 +1162,24 @@ public class QuestionDef implements Serializable{
 
         if(dataType == QuestionDef.QTN_TYPE_LIST_EXCLUSIVE ||
                 dataType == QuestionDef.QTN_TYPE_LIST_MULTIPLE){
-			if(options != null){
-				updateOptionNodeChildren();
-			}
-		}
-		else if(dataType == QuestionDef.QTN_TYPE_LIST_EXCLUSIVE_DYNAMIC){
-			list = controlNode.getElementsByTagName(XformConstants.NODE_NAME_ITEMSET_MINUS_PREFIX);
-			if(list.getLength() > 0)
-				firstOptionNode = (Element)list.item(0);
-		}
-	}
-	
-	private void updateOptionNodeChildren(){
-		List optns = (List)options;
-		for(int i=0; i<optns.size(); i++){
-			OptionDef optionDef = (OptionDef)optns.get(i);
-			updateOptionNodeChildren(optionDef);
-			if(i == 0)
-				firstOptionNode = optionDef.getControlNode();
-		}
-	}
+            if(options != null){
+                List optns = (List)options;
+                for(int i=0; i<optns.size(); i++){
+                    OptionDef optionDef = (OptionDef)optns.get(i);
+                    updateOptionNodeChildren(optionDef);
+                    if(i == 0)
+                        firstOptionNode = optionDef.getControlNode();
+                }
+            }
+        }
+        else if(dataType == QuestionDef.QTN_TYPE_LIST_EXCLUSIVE_DYNAMIC){
+            list = controlNode.getElementsByTagName(XformConstants.NODE_NAME_ITEMSET_MINUS_PREFIX);
+            if(list.getLength() > 0)
+                firstOptionNode = (Element)list.item(0);
+        }
+    }
 
-	/**
+    /**
      * Updates xforms ui nodes of an option definition object when the name of
      * xforms ui node of this question has changed.
      */
@@ -1340,27 +1335,10 @@ public class QuestionDef implements Serializable{
             optionDef.setText(optn.getText());
 
             orderedOptns.add(optionDef); //add the option in the order it was before the refresh.
-			
-			//Preserve the previous option ordering even in the xforms document nodes.
-			int newIndex = ((List)options).indexOf(optionDef);
-			if(index != newIndex){
-				if(newIndex < index){
-					while(newIndex < index){
-						moveOptionDown(optionDef);
-						newIndex++;
-					}
-				}
-				else{
-					while(newIndex > index){
-						moveOptionUp(optionDef);
-						newIndex--;
-					}
-				}
-			}
 
-			/*int index1 = this.getOptionIndex(optn.getVariableName());
-			if(index != index1 && index1 != -1 && index < this.getOptionCount() - 1){
-				((List)this.getOptions()).remove(optionDef);
+            /*int index1 = this.getOptionIndex(optn.getVariableName());
+            if(index != index1 && index1 != -1 && index < this.getOptionCount() - 1){
+                ((List)this.getOptions()).remove(optionDef);
                 ((List)this.getOptions()).set(index, optionDef);
             }*/
         }
