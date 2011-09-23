@@ -7,6 +7,7 @@ import org.purc.purcforms.client.model.FormDef;
 import org.purc.purcforms.client.model.ModelConstants;
 import org.purc.purcforms.client.model.QuestionDef;
 import org.purc.purcforms.client.model.ValidationRule;
+import org.purc.purcforms.client.util.FormUtil;
 
 import com.google.gwt.xml.client.Element;
 
@@ -49,6 +50,11 @@ public class ConstraintBuilder {
 		if(node == null)
 			node = questionDef.getControlNode();
 
+		if(XformParser.isDesignerReadOnlyConstraint(node)){
+			//TODO we should not let the user change read only nodes.
+			return;
+		}
+		
 		Vector conditions  = rule.getConditions();
 		if(conditions == null || conditions.size() == 0){
 			node.removeAttribute(XformConstants.ATTRIBUTE_NAME_CONSTRAINT);
@@ -93,10 +99,13 @@ public class ConstraintBuilder {
 		QuestionDef questionDef = formDef.getQuestion(condition.getQuestionId());
 		if(questionDef != null){			
 			String value = " '" + condition.getValue() + "'";
-			if(questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN || questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL || questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC || 
-					questionDef.getDataType() == QuestionDef.QTN_TYPE_REPEAT || condition.getFunction() == ModelConstants.FUNCTION_LENGTH ||
-					condition.getValue().endsWith("()"))
-				value = " " + condition.getValue();
+			
+			if(condition.getValue() != null && condition.getValue().trim().length() > 0){
+				if(questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN || questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL || questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC || 
+						questionDef.getDataType() == QuestionDef.QTN_TYPE_REPEAT || condition.getFunction() == ModelConstants.FUNCTION_LENGTH ||
+						condition.getValue().endsWith("()"))
+					value = " " + condition.getValue();
+			}
 
 			constraint = ". ";
 			//if(actionQtnDef.getDataType() == QuestionDef.QTN_TYPE_REPEAT)
@@ -105,17 +114,34 @@ public class ConstraintBuilder {
 				constraint = "length(.) ";
 			
 			if(condition.getOperator() == ModelConstants.OPERATOR_BETWEEN)
-				 constraint += XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action)+value + " and "+ "." + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action)+ condition.getSecondValue();
+				 constraint += XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action)+value + " and "+ "." + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action) + " " + condition.getSecondValue();
 			else if(condition.getOperator() == ModelConstants.OPERATOR_NOT_BETWEEN)
-				 constraint +=XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action)+condition.getSecondValue() + " or "+ "." + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action)+value ;
-			else if (condition.getOperator() == ModelConstants.OPERATOR_STARTS_WITH)
-				 constraint += "starts-with(.,"+ value+")"; 
-			else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_START_WITH)
-				 constraint += "not(starts-with(.,"+ value+"))";
-			else if (condition.getOperator() == ModelConstants.OPERATOR_CONTAINS)
-				 constraint += "contains(.,"+ value+")";
-			else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_CONTAIN)
-				 constraint += "not(contains(.,"+ value+"))";
+				 constraint +=XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action) + " " + condition.getSecondValue() + " or "+ "." + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action)+value ;
+			
+			if(condition.getFunction() != ModelConstants.FUNCTION_LENGTH) {
+				if (condition.getOperator() == ModelConstants.OPERATOR_STARTS_WITH)
+					 constraint += " starts-with(.,"+ value+")"; 
+				else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_START_WITH)
+					 constraint += " not(starts-with(.,"+ value+"))";
+				else if (condition.getOperator() == ModelConstants.OPERATOR_ENDS_WITH)
+					constraint += " ends-with(.,"+ value+")"; 
+				else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_END_WITH)
+					constraint += " not(ends-with(.,"+ value+"))";
+				else if (condition.getOperator() == ModelConstants.OPERATOR_CONTAINS){
+					if(FormUtil.isJavaRosaSaveFormat())
+						constraint = "selected(" + constraint + "," + value + ")";
+					else	
+						constraint += " contains(.,"+ value+")";
+				}
+				else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_CONTAIN){
+					if(FormUtil.isJavaRosaSaveFormat())
+						constraint = "not(selected(" + constraint + "," + value + "))";
+					else
+						constraint += " not(contains(.,"+ value+"))";
+				}
+				else
+					constraint += XformBuilderUtil.getXpathOperator(condition.getOperator(),action)+value;
+			}
 			else
 				constraint += XformBuilderUtil.getXpathOperator(condition.getOperator(),action)+value;
 		}

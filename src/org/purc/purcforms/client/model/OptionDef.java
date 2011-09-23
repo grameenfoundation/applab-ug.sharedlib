@@ -11,6 +11,7 @@ import org.purc.purcforms.client.xforms.UiElementBuilder;
 import org.purc.purcforms.client.xforms.XformConstants;
 import org.purc.purcforms.client.xforms.XmlUtil;
 
+import com.google.gwt.user.client.Window;
 import com.google.gwt.xml.client.Document;
 import com.google.gwt.xml.client.Element;
 

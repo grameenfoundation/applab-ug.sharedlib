@@ -54,7 +54,20 @@ public class ItemsetBuilder {
 		NodeList nodes = modelNode.getElementsByTagName(XformConstants.NODE_NAME_INSTANCE);
 		if(nodes.getLength() == 0)
 			nodes = modelNode.getElementsByTagName(XformConstants.NODE_NAME_INSTANCE_MINUS_PREFIX); //TODO What happens when we pass a name with a prefix?
-		modelNode.insertBefore(instanceNode, XmlUtil.getNextElementSibling((Element)nodes.item(nodes.getLength() - 1)));
+		
+		int instanceNodeCount = nodes.getLength();
+		
+		//Delete any existing instances with the id of the instance that we are creating.
+		for(int index = 0; index < nodes.getLength(); index++){
+			Element node = (Element)nodes.item(index);
+			if(questionDef.getBinding().equalsIgnoreCase(node.getAttribute(XformConstants.ATTRIBUTE_NAME_ID))){
+				modelNode.removeChild(node);
+				--instanceNodeCount;
+			}
+		}
+		
+		//insert this instance node at the end of any existing instance node.
+		modelNode.insertBefore(instanceNode, XmlUtil.getNextElementSibling((Element)nodes.item(instanceNodeCount - 1)));
 
 		Element dataNode =  doc.createElement("dynamiclist"/*questionDef.getVariableName()*/);
 		instanceNode.appendChild(dataNode);

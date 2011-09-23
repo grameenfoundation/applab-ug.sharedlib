@@ -7,12 +7,13 @@ import org.purc.purcforms.client.model.FormDef;
 import org.purc.purcforms.client.model.ModelConstants;
 import org.purc.purcforms.client.model.QuestionDef;
 import org.purc.purcforms.client.model.SkipRule;
+import org.purc.purcforms.client.util.FormUtil;
 
 import com.google.gwt.xml.client.Element;
 
+
 /**
- * Builds relevant attributes of xforms documents from skip rule definition
- * objects.
+ * Builds relevant attributes of xforms documents from skip rule definition objects.
  * 
  * @author daniel
  * 
@@ -37,14 +38,15 @@ public class RelevantBuilder {
 	 */
 	public static void fromSkipRule2Xform(SkipRule rule, FormDef formDef) {
 		String relevant = "";
-		Vector conditions = rule.getConditions();
-		for (int i = 0; i < conditions.size(); i++) {
-			if (relevant.length() > 0)
-				relevant += XformBuilderUtil.getConditionsOperatorText(rule
-						.getConditionsOperator());
-			relevant += fromSkipCondition2Xform(
-					(Condition) conditions.elementAt(i), formDef,
-					rule.getAction());
+		Vector conditions  = rule.getConditions();
+		if(conditions == null)
+			return;
+		
+		for(int i=0; i<conditions.size(); i++){
+			if(relevant.length() > 0)
+				relevant += XformBuilderUtil.getConditionsOperatorText(rule.getConditionsOperator());
+			relevant += fromSkipCondition2Xform((Condition)conditions.elementAt(i),formDef,rule.getAction());
+					
 		}
 
 		Vector actionTargets = rule.getActionTargets();
@@ -55,16 +57,21 @@ public class RelevantBuilder {
 				continue;
 
 			Element node = questionDef.getBindNode();
-			if (node == null)
+			if(node == null)
 				node = questionDef.getControlNode();
 
-			if (relevant.trim().length() == 0) {
+			if(XformParser.isDesignerReadOnlyRelevant(node)){
+				//TODO we should not let the user change read only nodes.
+				return;
+			}
+			
+			if(relevant.trim().length() == 0){
 				node.removeAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT);
 				node.removeAttribute(XformConstants.ATTRIBUTE_NAME_ACTION);
 				node.removeAttribute(XformConstants.ATTRIBUTE_NAME_REQUIRED);
-			} else {
-				node.setAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT,
-						relevant);
+			}
+			else{
+				node.setAttribute(XformConstants.ATTRIBUTE_NAME_RELEVANT, relevant);
 
 				String value = XformConstants.ATTRIBUTE_VALUE_ENABLE;
 				if ((rule.getAction() & ModelConstants.ACTION_ENABLE) != 0)
@@ -97,13 +104,11 @@ public class RelevantBuilder {
 	 *            the skip rule action to its target questions.
 	 * @return the condition xforms representation.
 	 */
-	private static String fromSkipCondition2Xform(Condition condition,
-			FormDef formDef, int action) {
+	private static String fromSkipCondition2Xform(Condition condition, FormDef formDef, int action){
 		String relevant = null;
 
-		QuestionDef questionDef = formDef
-				.getQuestion(condition.getQuestionId());
-		if (questionDef != null) {
+		QuestionDef questionDef = formDef.getQuestion(condition.getQuestionId());
+		if(questionDef != null){
 			/*
 			 * relevant = questionDef.getBinding();
 			 * if(!relevant.contains(formDef.getBinding())) relevant = "/" +
@@ -113,14 +118,37 @@ public class RelevantBuilder {
 					questionDef.getBinding());
 
 			String value = " '" + condition.getValue() + "'";
-			if (questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN
-					|| questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL
-					|| questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC)
-				value = " " + condition.getValue();
+			if(condition.getValue() != null && condition.getValue().trim().length() > 0){
+				if(questionDef.getDataType() == QuestionDef.QTN_TYPE_BOOLEAN || questionDef.getDataType() == QuestionDef.QTN_TYPE_DECIMAL || questionDef.getDataType() == QuestionDef.QTN_TYPE_NUMERIC)
+					value = " " + condition.getValue();
+			}
 
-			relevant += " "
-					+ XformBuilderUtil.getXpathOperator(
-							condition.getOperator(), action) + value;
+			if(condition.getOperator() == ModelConstants.OPERATOR_BETWEEN)
+				relevant += " " + XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action)+value + " and " + relevant + " " + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action) + " " + condition.getSecondValue();
+			else if(condition.getOperator() == ModelConstants.OPERATOR_NOT_BETWEEN)
+				relevant += " " + XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action) + " " + condition.getSecondValue() + " or " + relevant + " " + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action)+value ;
+			else if (condition.getOperator() == ModelConstants.OPERATOR_STARTS_WITH)
+				relevant += " starts-with(.,"+ value+")"; 
+			else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_START_WITH)
+				relevant += " not(starts-with(.,"+ value+"))";
+			else if (condition.getOperator() == ModelConstants.OPERATOR_ENDS_WITH)
+				relevant += " ends-with(.,"+ value+")"; 
+			else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_END_WITH)
+				relevant += " not(ends-with(.,"+ value+"))";
+			else if (condition.getOperator() == ModelConstants.OPERATOR_CONTAINS){
+				if(FormUtil.isJavaRosaSaveFormat())
+					relevant = "selected(" + relevant + "," + value + ")";
+				else	
+					relevant += " contains(.,"+ value+")";
+			}
+			else if (condition.getOperator() == ModelConstants.OPERATOR_NOT_CONTAIN){
+				if(FormUtil.isJavaRosaSaveFormat())
+					relevant = "not(selected(" + relevant + "," + value + "))";
+				else
+					relevant += " not(contains(.,"+ value+"))";
+			}
+			else
+				relevant += " " + XformBuilderUtil.getXpathOperator(condition.getOperator(),action)+value;
 		}
 		return relevant;
 	}

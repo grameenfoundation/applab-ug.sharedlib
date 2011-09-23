@@ -46,6 +46,12 @@ public class RelevantParser {
 			QuestionDef qtn = (QuestionDef)keys.next();
 			String relevant = (String)relevants.get(qtn);
 
+			if(relevant.startsWith("("))
+				relevant = relevant.substring(1);
+			
+			if(relevant.endsWith(")") && !QuestionDef.isDateFunction(relevant))
+				relevant = relevant.substring(0, relevant.length() - 1);
+			
 			//If there is a skip rule with the same relevant as the current
 			//then just add this question as another action target to the skip
 			//rule instead of creating a new skip rule.
@@ -117,6 +123,38 @@ public class RelevantParser {
 				conditions.add(condition);
 		}
 
+		//TODO Commented out because of being buggy when form is refreshed
+		//Preserve the between operator
+		/*if( (relevant.contains(" and ") && relevant.contains(">") && relevant.contains("<") ) &&
+				(conditions.size() == 2 || (conditions.size() == 3 && XformParserUtil.getConditionsOperator(relevant) == ModelConstants.CONDITIONS_OPERATOR_OR)) ){
+
+			condition  = new Condition();
+			condition.setId(((Condition)conditions.get(0)).getId());
+			condition.setOperator(ModelConstants.OPERATOR_BETWEEN);
+			condition.setQuestionId(((Condition)conditions.get(0)).getQuestionId());
+			if(relevant.contains("length(.)") || relevant.contains("count(.)"))
+				condition.setFunction(ModelConstants.FUNCTION_LENGTH);
+			
+			condition.setValue(((Condition)conditions.get(0)).getValue());
+			condition.setSecondValue(((Condition)conditions.get(1)).getValue());
+			
+			//This is just for the designer
+			if(condition.getValue().startsWith(formDef.getBinding() + "/"))
+				condition.setValueQtnDef(formDef.getQuestion(condition.getValue().substring(condition.getValue().indexOf('/')+1)));
+			else
+				condition.setBindingChangeListener(formDef.getQuestion(((Condition)conditions.get(0)).getQuestionId()));
+			
+			Condition cond = null;
+			if(conditions.size() == 3)
+				cond = (Condition)conditions.get(2);
+			
+			conditions.clear();
+			conditions.add(condition);
+			
+			if(cond != null)
+				conditions.add(cond);
+		}*/
+		
 		return conditions;
 	}
 
@@ -141,6 +179,12 @@ public class RelevantParser {
 			return null;
 
 		String varName = relevant.substring(0, pos);
+		
+		if(varName.startsWith("selected("))
+			varName = varName.substring("selected(".length());
+		else if(varName.startsWith("not(selected("))
+			varName = varName.substring("not(selected(".length());
+		
 		QuestionDef questionDef = formDef.getQuestion(varName.trim());
 		if(questionDef == null){
 			String prefix = "/" + formDef.getBinding() + "/";
@@ -185,6 +229,14 @@ public class RelevantParser {
 		else
 			condition.setOperator(ModelConstants.OPERATOR_IS_NULL); //must be = ''
 
+		//correct back the contains and not contain operators for multiple selects.
+		if(questionDef.getDataType() == QuestionDef.QTN_TYPE_LIST_MULTIPLE){
+			if(condition.getOperator() == ModelConstants.OPERATOR_EQUAL)
+				condition.setOperator(ModelConstants.OPERATOR_CONTAINS);
+			else if(condition.getOperator() == ModelConstants.OPERATOR_NOT_EQUAL)
+				condition.setOperator(ModelConstants.OPERATOR_NOT_CONTAIN);
+		}
+		
 		return condition;
 	}
 }

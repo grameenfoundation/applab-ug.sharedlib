@@ -38,52 +38,72 @@ public class XformParserUtil {
 	//TODO Add the other xpath operators
 	public static int getOperator(String expression, int action){
 		//We return the operator which is the opposite of the expression
-		if(expression.indexOf(">=") > 0 || expression.indexOf("&gt;=") > 0){
+		if(expression.indexOf(">=") > -1 || expression.indexOf("&gt;=") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_GREATER_EQUAL;
 			return ModelConstants.OPERATOR_LESS;
 		}
-		else if(expression.indexOf('>') > 0 || expression.indexOf("&gt;") > 0){
+		else if(expression.indexOf('>') > -1 || expression.indexOf("&gt;") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_GREATER;
 			return ModelConstants.OPERATOR_LESS_EQUAL;
 		}
-		else if(expression.indexOf("<=") > 0 || expression.indexOf("&lt;=") > 0){
+		else if(expression.indexOf("<=") > -1 || expression.indexOf("&lt;=") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_LESS_EQUAL;
 			return ModelConstants.OPERATOR_GREATER;
 		}
-		else if(expression.indexOf('<') > 0 || expression.indexOf("&lt;") > 0){
+		else if(expression.indexOf('<') > -1 || expression.indexOf("&lt;") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_LESS;
 			return ModelConstants.OPERATOR_GREATER_EQUAL;
 		}
-		else if(expression.indexOf("!=") > 0 || expression.indexOf("!=") > 0){
+		else if(expression.indexOf("!=") > -1 || expression.indexOf("!=") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_NOT_EQUAL;
 			return ModelConstants.OPERATOR_EQUAL;
 		}
-		else if(expression.indexOf('=') > 0){
+		else if(expression.indexOf('=') > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_EQUAL;
 			return ModelConstants.OPERATOR_NOT_EQUAL;
 		}
-		else if(expression.indexOf("not(starts-with") > 0){
+		else if(expression.indexOf("not(starts-with") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_NOT_START_WITH;
 			return ModelConstants.OPERATOR_STARTS_WITH;
 		}
-		else if(expression.indexOf("starts-with") > 0){
+		else if(expression.indexOf("starts-with") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_STARTS_WITH;
 			return ModelConstants.OPERATOR_NOT_START_WITH;
 		}
-		else if(expression.indexOf("not(contains") > 0){
+		else if(expression.indexOf("not(ends-with") > -1){
+			if(XformBuilderUtil.isPositiveAction(action))
+				return ModelConstants.OPERATOR_NOT_END_WITH;
+			return ModelConstants.OPERATOR_ENDS_WITH;
+		}
+		else if(expression.indexOf("ends-with") > -1){
+			if(XformBuilderUtil.isPositiveAction(action))
+				return ModelConstants.OPERATOR_ENDS_WITH;
+			return ModelConstants.OPERATOR_NOT_END_WITH;
+		}
+		else if(expression.indexOf("not(contains") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_NOT_CONTAIN;
 			return ModelConstants.OPERATOR_CONTAINS;
 		}
-		else if(expression.indexOf("contains") > 0){
+		else if(expression.indexOf("contains") > -1){
+			if(XformBuilderUtil.isPositiveAction(action))
+				return ModelConstants.OPERATOR_CONTAINS;
+			return ModelConstants.OPERATOR_NOT_CONTAIN;
+		}
+		else if(expression.indexOf("not(selected(") > -1){
+			if(XformBuilderUtil.isPositiveAction(action))
+				return ModelConstants.OPERATOR_NOT_CONTAIN;
+			return ModelConstants.OPERATOR_CONTAINS;
+		}
+		else if(expression.indexOf("selected(") > -1){
 			if(XformBuilderUtil.isPositiveAction(action))
 				return ModelConstants.OPERATOR_CONTAINS;
 			return ModelConstants.OPERATOR_NOT_CONTAIN;
@@ -124,47 +144,63 @@ public class XformParserUtil {
 		//Using lastindexof because of expressions like:
 		//relevant="/ClinicalData/SubjectData/StudyEventData/FormData/ItemGroupData/ItemData[@ItemOID='I_REVI_IMPROVEMENT']/@Value = '1'"
 		int pos = expression.lastIndexOf("!=");
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 
 		pos = expression.lastIndexOf(">=");
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 
 		pos = expression.lastIndexOf("<=");
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 
 		pos = expression.lastIndexOf('>');
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 
 		pos = expression.lastIndexOf('<');
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 
 		pos = expression.lastIndexOf('=');
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 		
 		//the order of the code below should not be changed as for example 'starts with' can be taken
 		//even when condition is 'not(starts-with'
 		
 		pos = expression.lastIndexOf("not(starts-with");
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 		
 		pos = expression.lastIndexOf("starts-with");
-		if(pos > 0)
+		if(pos > -1)
+			return pos;
+		
+		pos = expression.lastIndexOf("not(ends-with");
+		if(pos > -1)
+			return pos;
+		
+		pos = expression.lastIndexOf("ends-with");
+		if(pos > -1)
 			return pos;
 		
 		pos = expression.lastIndexOf("not(contains");
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
 		
 		pos = expression.lastIndexOf("contains");
-		if(pos > 0)
+		if(pos > -1)
 			return pos;
+		
+		pos = expression.lastIndexOf("not selected(");
+		if(pos > -1)
+			return expression.indexOf(',');
+		
+		pos = expression.lastIndexOf("selected(");
+		if(pos > -1)
+			return expression.indexOf(',');
 
 		return pos;
 	}
@@ -308,10 +344,15 @@ public class XformParserUtil {
 	 * @return the operator constant.
 	 */
 	public static int getConditionsOperator(String expression){
-		if(expression.toLowerCase().indexOf(XformConstants.CONDITIONS_OPERATOR_TEXT_AND) > 0)
+		if(expression.toLowerCase().indexOf(XformConstants.CONDITIONS_OPERATOR_TEXT_AND) > 0 
+				&& expression.toLowerCase().indexOf(XformConstants.CONDITIONS_OPERATOR_TEXT_OR) > 0){
+			return ModelConstants.CONDITIONS_OPERATOR_OR; 
+		}
+		else if(expression.toLowerCase().indexOf(XformConstants.CONDITIONS_OPERATOR_TEXT_AND) > 0)
 			return ModelConstants.CONDITIONS_OPERATOR_AND;
 		else if(expression.toLowerCase().indexOf(XformConstants.CONDITIONS_OPERATOR_TEXT_OR) > 0)
 			return ModelConstants.CONDITIONS_OPERATOR_OR;
+		
 		return ModelConstants.CONDITIONS_OPERATOR_NULL;
 	}
 }

@@ -734,20 +734,46 @@ public class PageDef implements Serializable{
         if(pageNo == pageDef.getPageNo())
             name = pageDef.getName();
 
-        Vector<QuestionDef> orderedQtns = new Vector<QuestionDef>();
+		Vector<QuestionDef> orderedQtns = new Vector<QuestionDef>();
+		Vector<QuestionDef> missingQtns = new Vector<QuestionDef>();
 
-        int count = pageDef.getQuestionCount();
-        for(int index = 0; index < count; index++){
-            QuestionDef qtn = pageDef.getQuestionAt(index);
-            QuestionDef questionDef = this.getQuestion(qtn.getBinding());
-            if(questionDef == null)
-                continue; //Possibly this question was deleted on server
-            questionDef.refresh(qtn);
+		int count = pageDef.getQuestionCount();
+		for(int index = 0; index < count; index++){
+			QuestionDef qtn = pageDef.getQuestionAt(index);
+			QuestionDef questionDef = this.getQuestion(qtn.getBinding());
+			if(questionDef == null){
+				missingQtns.add(qtn);
+				continue; //Possibly this question was deleted on server
+			}
+			
+			questionDef.refresh(qtn);
 
-            orderedQtns.add(questionDef); //add the question in the order it was before the refresh.
+			orderedQtns.add(questionDef); //add the question in the order it was before the refresh.
 
-            /*int index1 = this.getQuestionIndex(qtn.getVariableName());
-            if(index != index1 && index1 != -1 && index < this.getQuestionCount() - 1){
+			
+			//Preserve the previous question ordering even in the xforms document nodes.
+			int newIndex = ((List)questions).indexOf(questionDef);
+			
+			int tempIndex = index - missingQtns.size();
+			if(newIndex < ((List)questions).size()){
+				if(tempIndex != newIndex){
+					if(newIndex < tempIndex){
+						while(newIndex < tempIndex){
+							moveQuestionDown(questionDef);
+							newIndex++;
+						}
+					}
+					else{
+						while(newIndex > tempIndex){
+							moveQuestionUp(questionDef);
+							newIndex--;
+						}
+					}
+				}
+			}
+			
+			/*int index1 = this.getQuestionIndex(qtn.getVariableName());
+			if(index != index1 && index1 != -1 && index < this.getQuestionCount() - 1){
                 this.getQuestions().removeElement(questionDef);
                 this.getQuestions().insertElementAt(questionDef, index);
             }*/
@@ -755,14 +781,22 @@ public class PageDef implements Serializable{
 
         //now add the new questions which have just been added by refresh.
         count = getQuestionCount();
-        for(int index = 0; index < count; index++){
-            QuestionDef questionDef = getQuestionAt(index);
-            if(pageDef.getQuestion(questionDef.getBinding()) == null)
-                orderedQtns.add(questionDef);
-        }
-
-        questions = orderedQtns;
-    }
+		for(int index = 0; index < count; index++){
+			QuestionDef questionDef = getQuestionAt(index);
+			if(pageDef.getQuestion(questionDef.getBinding()) == null)
+				orderedQtns.add(questionDef);
+		}
+		
+		//Now add the missing questions. Possibly they were added by user and not existing in the
+		//original server side form.
+		for(int index = 0; index < missingQtns.size(); index++){
+			QuestionDef qtnDef = missingQtns.get(index);
+			orderedQtns.add(new QuestionDef(qtnDef, this));
+			orderedQtns.get(orderedQtns.size() - 1).setId(orderedQtns.size() + index + 1);
+		}
+		
+		questions = orderedQtns;
+	}
 
 
     /**

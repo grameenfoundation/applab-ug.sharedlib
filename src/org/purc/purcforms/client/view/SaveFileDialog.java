@@ -28,6 +28,8 @@ import com.google.gwt.user.client.ui.FormPanel.SubmitCompleteHandler;
  */
 public class SaveFileDialog extends DialogBox{
 
+	private static boolean warnOnClose = true;
+	
 	private FormPanel form = new FormPanel();
 	private String actionUrl;
 	private TextBox txtName;
@@ -110,7 +112,9 @@ public class SaveFileDialog extends DialogBox{
 			public void onSubmitComplete(FormPanel.SubmitCompleteEvent event){
 				hide();
 				FormUtil.dlg.hide();
+				warnOnClose = false;
 				Window.Location.replace(form.getAction());
+				warnOnClose = true;
 			}
 		});
 
@@ -133,5 +137,13 @@ public class SaveFileDialog extends DialogBox{
 				txtName.setFocus(true);
 			}
 		});
+	}
+	
+	public static boolean isWarnOnClose() {
+		return warnOnClose;
+	}
+
+	public static void setWarnOnClose(boolean warnOnClose) {
+		SaveFileDialog.warnOnClose = warnOnClose;
 	}
 }

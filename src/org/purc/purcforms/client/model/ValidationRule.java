@@ -22,61 +22,61 @@ import com.google.gwt.xml.client.Element;
  *
  */
 public class ValidationRule implements Serializable{
-    
-    /** The unique identifier of the question referenced by this validation rule. */
-    private int questionId = ModelConstants.NULL_ID;
-    
-    /** A list of conditions (Condition object) to be tested for a rule. 
-     * E.g. age is greater than 4. etc
-     */
-    private Vector conditions;
-    
-    
-    /** The validation rule name. */
-    private String errorMessage;
-    
-    /** Operator for combining more than one condition. (And, Or) only these two for now. */
-    private int conditionsOperator = ModelConstants.CONDITIONS_OPERATOR_NULL;
-    
-    /** The form to which the validation rule belongs. */
-    private FormDef formDef;
-    
-    /** The xpath expression pointing to the corresponding node in the xforms document. */
-    private String xpathExpression;
-    
-    
-    /** Constructs a rule object ready to be initialized. */
-    public ValidationRule(FormDef formDef){
-        this.formDef = formDef;
-    }
-    
-    public ValidationRule(int questionId, FormDef formDef){
-        this.questionId = questionId;
-        this.formDef = formDef;
-    }
-    
-    /** Copy constructor. */
-    public ValidationRule(ValidationRule validationRule){
-        setQuestionId(validationRule.getQuestionId());
-        setErrorMessage(validationRule.getErrorMessage());
-        setConditionsOperator(validationRule.getConditionsOperator());
-        copyConditions(validationRule.getConditions());
-        setFormDef(new FormDef(validationRule.getFormDef(),false));
-        this.xpathExpression = validationRule.xpathExpression;
-    }
-    
-    /** Construct a Rule object from parameters. 
-     * 
-     * @param ruleId 
-     * @param conditions 
-     * @param action
-     * @param actionTargets
-     */
-    public ValidationRule(int questionId, Vector conditions , String errorMessage) {
-        setQuestionId(questionId);
-        setConditions(conditions);
-        setErrorMessage(errorMessage);
-    }
+	
+	/** The unique identifier of the question referenced by this validation rule. */
+	private int questionId = ModelConstants.NULL_ID;
+	
+	/** A list of conditions (Condition object) to be tested for a rule. 
+	 * E.g. age is greater than 4. etc
+	 */
+	private Vector conditions;
+	
+	
+	/** The validation rule name. */
+	private String errorMessage;
+	
+	/** Operator for combining more than one condition. (And, Or) only these two for now. */
+	private int conditionsOperator = ModelConstants.CONDITIONS_OPERATOR_AND;
+	
+	/** The form to which the validation rule belongs. */
+	private FormDef formDef;
+	
+	/** The xpath expression pointing to the corresponding node in the xforms document. */
+	private String xpathExpression;
+	
+	
+	/** Constructs a rule object ready to be initialized. */
+	public ValidationRule(FormDef formDef){
+		this.formDef = formDef;
+	}
+	
+	public ValidationRule(int questionId, FormDef formDef){
+		this.questionId = questionId;
+		this.formDef = formDef;
+	}
+	
+	/** Copy constructor. */
+	public ValidationRule(ValidationRule validationRule){
+		setQuestionId(validationRule.getQuestionId());
+		setErrorMessage(validationRule.getErrorMessage());
+		setConditionsOperator(validationRule.getConditionsOperator());
+		copyConditions(validationRule.getConditions());
+		setFormDef(new FormDef(validationRule.getFormDef(),false));
+		this.xpathExpression = validationRule.xpathExpression;
+	}
+	
+	/** Construct a Rule object from parameters. 
+	 * 
+	 * @param ruleId 
+	 * @param conditions 
+	 * @param action
+	 * @param actionTargets
+	 */
+	public ValidationRule(int questionId, Vector conditions , String errorMessage) {
+		setQuestionId(questionId);
+		setConditions(conditions);
+		setErrorMessage(errorMessage);
+	}
 
     public Vector getConditions() {
         return conditions;
@@ -214,22 +214,25 @@ public class ValidationRule implements Serializable{
         ConstraintBuilder.fromValidationRule2Xform(this,formDef);
     }
 
-    //TODO This should be smarter
-    public byte getMaxValue(FormDef formDef){
-        if(conditions == null || conditions.size() == 0)
-            return 127;
-        String value = ((Condition)conditions.get(0)).getValue(formDef);
-        if(value == null || value.trim().length() == 0)
-            return 127;
-        try{
-            return Byte.parseByte(value);
-        }
-        catch(Exception ex){}
-        return 127;
-    }
-    
-    public void updateConditionValue(String origValue, String newValue){
-        for(int index = 0; index < this.getConditionCount(); index++)
+	//TODO This should be smarter
+	public int getMaxValue(FormDef formDef){
+		if(conditions == null || conditions.size() == 0)
+			return 0;
+		
+		String value = ((Condition)conditions.get(0)).getValue(formDef);
+		if(value == null || value.trim().length() == 0)
+			return 0;
+		
+		try{
+			return Integer.parseInt(value);
+		}
+		catch(Exception ex){
+			return 0;
+		}
+	}
+	
+	public void updateConditionValue(String origValue, String newValue){
+		for(int index = 0; index < this.getConditionCount(); index++)
             getConditionAt(index).updateValue(origValue, newValue);
     }
     

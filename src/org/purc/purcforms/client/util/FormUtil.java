@@ -22,6 +22,7 @@ import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.http.client.Response;
 import com.google.gwt.i18n.client.DateTimeFormat;
+import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.resources.client.ImageResource;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Window;
@@ -43,8 +44,10 @@ import com.google.gwt.xml.client.Element;
  *
  */
 public class FormUtil {
-    
-    /** Parameter for the form id. e.g formId, surveyId, questionaireId, etc. */
+
+	public static final String SAVE_DECIMAL_SEPARATOR = ".";
+	
+	/** Parameter for the form id. e.g formId, surveyId, questionaireId, etc. */
     private static final String PARAM_NAME_FORM_ID_NAME = "formIdName";
     
     /** 
@@ -91,27 +94,36 @@ public class FormUtil {
     /** The time format used in the xforms model xml. */
     private static DateTimeFormat timeSubmitFormat;
 
-    /** The time format used for display purposes. */
-    private static DateTimeFormat timeDisplayFormat;
+	/** The time format used for display purposes. */
+	private static DateTimeFormat timeDisplayFormat;
+	
+	/** The date and time format used when passing string dates to JavaScript. */
+	private static DateTimeFormat javaScriptDateFormat;
 
-    private static String formDefDownloadUrlSuffix;
-    private static String formDefUploadUrlSuffix;
-    private static String entityFormDefDownloadUrlSuffix;
-    private static String formDataUploadUrlSuffix;
-    private static String afterSubmitUrlSuffix;
-    private static String formDefRefreshUrlSuffix;
+	private static String formDefDownloadUrlSuffix;
+	private static String formDefUploadUrlSuffix;
+	private static String entityFormDefDownloadUrlSuffix;
+	private static String formDataUploadUrlSuffix;
+	private static String afterSubmitUrlSuffix;
+	private static String afterCancelUrlSuffix;
+	private static String formDefRefreshUrlSuffix;
     private static String externalSourceUrlSuffix;
     private static String multimediaUrlSuffix;
     private static String fileOpenUrlSuffix;
     private static String fileSaveUrlSuffix;
     private static String gpsTypeName;
     private static String saveFormat;
-    private static boolean combineFormOnSave = true;
-    private static boolean rebuildBindings = false;
-    private static boolean readOnlyMode = false;;
-    
-    public static String JAVAROSA = "javarosa";
-    
+	private static String undoRedoBufferSize;
+	private static boolean combineFormOnSave = true;
+	private static boolean rebuildBindings = false;
+	private static boolean readOnlyMode = false;
+	private static boolean overwriteValidationsOnRefresh = false;
+
+	public static String JAVAROSA = "javarosa";
+	
+	private static NumberFormat cachedDecimalFormat;
+	
+	public static String localeKey;
 
     /** 
      * The url to navigate to when one closes the form designer by selecting
@@ -141,16 +153,20 @@ public class FormUtil {
      * we go to after a form submission. eg ........?patientId=13
      */
     private static boolean appendEntityIdAfterSubmit;
+	
+	private static boolean appendEntityIdAfterCancel;
 
-    /** 
-     * Flag determining whether to display the language xml tab or not.
+	/** 
+	 * Flag determining whether to display the language xml tab or not.
      */
     //private static boolean showLanguageTab = false;
 
     /**
      * Flag determining whether to display the form submitted successfully message or not.
      */
-    private static boolean showSubmitSuccessMsg = false;
+	private static boolean showSubmitSuccessMsg = false;
+	
+	private static HashMap<String, String> decimalSeparators = new HashMap<String, String>();
 
     /** The dialog used to show all progress messages. */
     public static ProgressDialog dlg = new ProgressDialog();
@@ -175,30 +191,54 @@ public class FormUtil {
                     ((TextBox) event.getSource()).cancelKey();
 
                 if ((!Character.isDigit(keyCode)) && (keyCode != (char) KeyCodes.KEY_TAB)
-                        && (keyCode != (char) KeyCodes.KEY_BACKSPACE) && (keyCode != (char) KeyCodes.KEY_LEFT)
-                        && (keyCode != (char) KeyCodes.KEY_UP) && (keyCode != (char) KeyCodes.KEY_RIGHT)
-                        && (keyCode != (char) KeyCodes.KEY_DOWN)) {
+						&& (keyCode != (char) KeyCodes.KEY_BACKSPACE) && (keyCode != (char) KeyCodes.KEY_LEFT)
+						&& (keyCode != (char) KeyCodes.KEY_UP) && (keyCode != (char) KeyCodes.KEY_RIGHT)
+						&& (keyCode != (char) KeyCodes.KEY_DOWN ) && (keyCode != (char) KeyCodes.KEY_DELETE)) {
 
-                    if(keyCode == '.' && allowDecimalPoints && !((TextBox)event.getSource()).getText().contains("."))
-                        return;
-
-                    String text = ((TextBox) event.getSource()).getText().trim();
-                    if(keyCode == '-'){
-                        if(text.length() == 0 || ((TextBox)event.getSource()).getCursorPos() == 0)
-                            return;
-                    }
-
-                    ((TextBox) event.getSource()).cancelKey(); 
-                }
-            }
-        });
+					String decimalSepChar = getDecimalSeparator();
+					if(keyCode == decimalSepChar.charAt(0)) {
+						if(allowDecimalPoints && !((TextBox)event.getSource()).getText().contains(decimalSepChar))
+							return;
+						else
+							((TextBox) event.getSource()).cancelKey();
+					}
+					
+					String text = ((TextBox) event.getSource()).getText().trim();
+					if(keyCode == '-'){
+						if(text.length() == 0 || ((TextBox)event.getSource()).getCursorPos() == 0)
+							return;
+					}
+					
+					//Allow backspace, delete, tab and arrow keys, which are = 0
+					if(!isControlChar(keyCode) && (int)keyCode != 0){
+						((TextBox) event.getSource()).cancelKey();
+					}
+				}
+				else if(!Character.isDigit(keyCode)){
+					String decimalSepChar = getDecimalSeparator();
+					if(keyCode == decimalSepChar.charAt(0)) {
+						if(allowDecimalPoints && !((TextBox)event.getSource()).getText().contains(decimalSepChar))
+							return;
+						else
+							((TextBox) event.getSource()).cancelKey();
+					}
+					
+					//TODO Why does runtime mode reach here for these special keys yet preview mode does not?
+					//Allow backspace, delete, tab and arrow keys, which are = 0
+					if(!isControlChar(keyCode) && (int)keyCode != 0)
+						((TextBox) event.getSource()).cancelKey();
+				}
+			}
+		});
 
         textBox.addChangeHandler(new ChangeHandler(){
             public void onChange(ChangeEvent event){
-                try{
-                    if(allowDecimalPoints)
-                        Double.parseDouble(((TextBox) event.getSource()).getText().trim());
-                    else
+				try{
+					if(allowDecimalPoints) {;
+						String answer = ((TextBox) event.getSource()).getText().trim();
+						Double.parseDouble(answer.replace(FormUtil.getDecimalSeparator(), FormUtil.SAVE_DECIMAL_SEPARATOR));
+					}
+					else
                         Long.parseLong(((TextBox) event.getSource()).getText().trim());
                 }
                 catch(Exception ex){
@@ -217,21 +257,42 @@ public class FormUtil {
                 if( keyCode == '%' || keyCode == '&' || keyCode == '(')
                     ((TextBox) event.getSource()).cancelKey();
 
-                if ((!Character.isDigit(keyCode)) && (keyCode != (char) KeyCodes.KEY_TAB)
-                        && (keyCode != (char) KeyCodes.KEY_BACKSPACE) && (keyCode != (char) KeyCodes.KEY_LEFT)
-                        && (keyCode != (char) KeyCodes.KEY_UP) && (keyCode != (char) KeyCodes.KEY_RIGHT)
-                        && (keyCode != (char) KeyCodes.KEY_DOWN)) {
+				if ((!Character.isDigit(keyCode)) && (keyCode != (char) KeyCodes.KEY_TAB)
+						&& (keyCode != (char) KeyCodes.KEY_BACKSPACE) && (keyCode != (char) KeyCodes.KEY_LEFT)
+						&& (keyCode != (char) KeyCodes.KEY_UP) && (keyCode != (char) KeyCodes.KEY_RIGHT)
+						&& (keyCode != (char) KeyCodes.KEY_DOWN) && (keyCode != (char) KeyCodes.KEY_DELETE)) {
 
-                    if(keyCode == '.' && allowDecimalPoints && !((TextBox)event.getSource()).getText().contains("."))
-                        return;
+					String decimalSepChar = getDecimalSeparator();
+					if(keyCode == decimalSepChar.charAt(0)) {
+						if(allowDecimalPoints && !((TextBox)event.getSource()).getText().contains(decimalSepChar))
+							return;
+						else
+							((TextBox) event.getSource()).cancelKey();
+					}
 
                     String text = ((TextBox) event.getSource()).getText().trim();
                     if((text.length() == 0 && keyCode == '-') || (keyCode == '-' && ((TextBox)event.getSource()).getCursorPos() == 0))
                         return;
 
-                    ((TextBox) event.getSource()).cancelKey(); 
-                }
-            }
+					//Allow backspace, delete, tab and arrow keys, which are = 0
+					if(!isControlChar(keyCode) && (int)keyCode != 0)
+						((TextBox) event.getSource()).cancelKey();
+				}
+				else if(!Character.isDigit(keyCode)){
+					String decimalSepChar = getDecimalSeparator();
+					if(keyCode == decimalSepChar.charAt(0)) {
+						if(allowDecimalPoints && !((TextBox)event.getSource()).getText().contains(decimalSepChar))
+							return;
+						else
+							((TextBox) event.getSource()).cancelKey();
+					}
+					
+					//TODO Why does runtime mode reach here for these special keys yet preview mode does not?
+					//Allow backspace, delete, tab and arrow keys, which are = 0
+					if(!isControlChar(keyCode) && (int)keyCode != 0)
+						((TextBox) event.getSource()).cancelKey();
+				}
+			}
         };
     }
 
@@ -369,29 +430,31 @@ public class FormUtil {
      */
     public static void setupUncaughtExceptionHandler(){
 
-        GWT.setUncaughtExceptionHandler(new GWT.UncaughtExceptionHandler() {
-            public void onUncaughtException(Throwable throwable) {
-                displayException(throwable);
-            }
-        });
-    }
-    
-    /**
-     * Gets the parameters passed in the host html file as divs (preferably hidden divs).
-     * For now this is the way of passing parameters to the form designer and runtime widget.
-     */
-    public static void retrieveUserDivParameters(){
-        formDefDownloadUrlSuffix = getDivValue("formDefDownloadUrlSuffix");
-        formDefUploadUrlSuffix = getDivValue("formDefUploadUrlSuffix");
-        entityFormDefDownloadUrlSuffix = getDivValue("entityFormDefDownloadUrlSuffix");
-        formDataUploadUrlSuffix = getDivValue("formDataUploadUrlSuffix");
-        afterSubmitUrlSuffix = getDivValue("afterSubmitUrlSuffix");
-        formDefRefreshUrlSuffix = getDivValue("formDefRefreshUrlSuffix");
-        externalSourceUrlSuffix = getDivValue("externalSourceUrlSuffix");
-        multimediaUrlSuffix = getDivValue("multimediaUrlSuffix");
-        fileOpenUrlSuffix = getDivValue("fileOpenUrlSuffix");
-        fileSaveUrlSuffix = getDivValue("fileSaveUrlSuffix");
-        closeUrl = getDivValue("closeUrl");
+		GWT.setUncaughtExceptionHandler(new GWT.UncaughtExceptionHandler() {
+			public void onUncaughtException(Throwable throwable) {
+				displayException(throwable);
+			}
+		});
+	}
+
+	/**
+	 * Gets the parameters passed in the host html file as divs (preferably hidden divs).
+	 * For now this is the way of passing parameters to the form designer and runtime widget.
+	 */
+	public static void retrieveUserDivParameters(){
+		formDefDownloadUrlSuffix = getDivValue("formDefDownloadUrlSuffix");
+		formDefUploadUrlSuffix = getDivValue("formDefUploadUrlSuffix");
+		entityFormDefDownloadUrlSuffix = getDivValue("entityFormDefDownloadUrlSuffix");
+		formDataUploadUrlSuffix = getDivValue("formDataUploadUrlSuffix");
+		afterSubmitUrlSuffix = getDivValue("afterSubmitUrlSuffix");
+		afterCancelUrlSuffix = getDivValue("afterCancelUrlSuffix");
+		formDefRefreshUrlSuffix = getDivValue("formDefRefreshUrlSuffix");
+		externalSourceUrlSuffix = getDivValue("externalSourceUrlSuffix");
+		multimediaUrlSuffix = getDivValue("multimediaUrlSuffix");
+		fileOpenUrlSuffix = getDivValue("fileOpenUrlSuffix");
+		fileSaveUrlSuffix = getDivValue("fileSaveUrlSuffix");
+		closeUrl = getDivValue("closeUrl");
+		localeKey = getDivValue("localeKey");
 
         if(multimediaUrlSuffix == null || multimediaUrlSuffix.trim().length() == 0)
             multimediaUrlSuffix = "multimedia";
@@ -430,6 +493,8 @@ public class FormUtil {
         format = getDivValue("dateSubmitFormat");
         if(format != null && format.trim().length() > 0)
             setDateSubmitFormat(format);
+		
+		javaScriptDateFormat = DateTimeFormat.getFormat("MMM dd, yyyy hh:mm:ss a");
 
         defaultFontFamily = getDivValue("defaultFontFamily");
         if(defaultFontFamily == null || defaultFontFamily.trim().length() == 0)
@@ -444,6 +509,12 @@ public class FormUtil {
             appendEntityIdAfterSubmit = false;
         else
             appendEntityIdAfterSubmit = !s.equals("0");
+		
+		s = getDivValue("appendEntityIdAfterCancel");
+		if(s == null || s.trim().length() == 0)
+			appendEntityIdAfterCancel = false;
+		else
+			appendEntityIdAfterCancel = !s.equals("0");
 
         s = getDivValue("showSubmitSuccessMsg");
         if("1".equals(s) || "true".equals(s))
@@ -466,6 +537,8 @@ public class FormUtil {
             XformConstants.ATTRIBUTE_NAME_CONSTRAINT_MESSAGE = s;
         
         saveFormat = getDivValue(PARAM_NAME_SAVE_FORMAT);
+		
+		undoRedoBufferSize = getDivValue("undoRedoBufferSize");
         
         if(JAVAROSA.equalsIgnoreCase(saveFormat)){
             gpsTypeName = "geopoint";
@@ -487,12 +560,18 @@ public class FormUtil {
         }
         
         s = FormUtil.getDivValue(PARAM_NAME_READONLY, false);
-        if(s != null && s.trim().length() > 0){
-            if("1".equals(s) || "true".equals(s))
-                readOnlyMode = true;
-        }
-        
-        retrieveUrlParameters();
+		if(s != null && s.trim().length() > 0){
+			if("1".equals(s) || "true".equals(s))
+				readOnlyMode = true;
+		}
+		
+		s = getDivValue("overwriteValidationsOnRefresh");
+		if(s != null && s.trim().length() > 0){
+			if("1".equals(s) || "true".equals(s))
+				overwriteValidationsOnRefresh = true;
+		}
+
+		retrieveUrlParameters();
     }
     
     /**
@@ -651,7 +730,11 @@ public class FormUtil {
 
     public static DateTimeFormat getDateSubmitFormat(){
         return dateSubmitFormat;
-    }
+	}
+	
+	public static DateTimeFormat getJavaScriptDateTimeFormat(){
+		return javaScriptDateFormat;
+	}
 
     public static String getFormDefDownloadUrlSuffix(){
         return formDefDownloadUrlSuffix;
@@ -670,11 +753,15 @@ public class FormUtil {
     }
 
     public static String getAfterSubmitUrlSuffix(){
-        return afterSubmitUrlSuffix;
-    }
+		return afterSubmitUrlSuffix;
+	}
+	
+	public static String getAfterCancelUrlSuffix(){
+		return afterCancelUrlSuffix;
+	}
 
-    public static String getFormDefRefreshUrlSuffix(){
-        return formDefRefreshUrlSuffix;
+	public static String getFormDefRefreshUrlSuffix(){
+		return formDefRefreshUrlSuffix;
     }
 
     public static String getExternalSourceUrlSuffix(){
@@ -721,11 +808,15 @@ public class FormUtil {
         return gpsTypeName;
     }
     
-    public static String getSaveFormat(){
-        return saveFormat;
-    }
-    
-    public static boolean isJavaRosaSaveFormat(){
+	public static String getSaveFormat(){
+		return saveFormat;
+	}
+	
+	public static String getUndoRedoBufferSize(){
+		return undoRedoBufferSize;
+	}
+
+	public static boolean isJavaRosaSaveFormat(){
         return JAVAROSA.equalsIgnoreCase(saveFormat);
     }
 
@@ -774,10 +865,14 @@ public class FormUtil {
 
     public static boolean appendEntityIdAfterSubmit(){
         return appendEntityIdAfterSubmit;
-    }
+	}
+	
+	public static boolean appendEntityIdAfterCancel(){
+		return appendEntityIdAfterCancel;
+	}
 
-    public static boolean showSubmitSuccessMsg(){
-        return showSubmitSuccessMsg;
+	public static boolean showSubmitSuccessMsg(){
+		return showSubmitSuccessMsg;
     }
     
     public static boolean combineFormOnSave(){
@@ -788,6 +883,10 @@ public class FormUtil {
         return rebuildBindings;
     }
     
+	public static boolean overwriteValidationsOnRefresh(){
+		return overwriteValidationsOnRefresh;
+	}
+	
     public static boolean isReadOnlyMode(){
         return readOnlyMode;
     }
@@ -1175,5 +1274,122 @@ public class FormUtil {
     
     public static String appendRandomParameter(String url){
         return addParameter(url, "purcFormsRandomParameter", new java.util.Date().getTime() + "");
-    }
+	}
+	 
+	public static String getDecimalSeparator(){
+		String s = decimalSeparators.get(localeKey);
+		if(s == null || s.trim().length() == 0)
+			s = ".";
+		return s;
+	}
+	
+	public static void loadDecimalSeparators(){
+		String decimalSeparatorList = FormUtil.getDivValue("decimalSeparators");
+
+		if(decimalSeparatorList == null || decimalSeparatorList.trim().length() == 0)
+			return;
+
+		String[] tokens = decimalSeparatorList.split(";");
+		if(tokens == null || tokens.length == 0)
+			return;
+
+		for(String token: tokens){
+			int index = token.indexOf(':');
+
+			//Should at least have one character for key or separator
+			if(index < 1 || index == token.length() - 1)
+				continue;
+
+			decimalSeparators.put(token.substring(0,index).trim(), token.substring(index+1).trim());
+		}
+	}
+	
+	
+	public static String getBinding(String s) {
+
+		if (s == null || s.length() < 1)
+			return "";
+		
+		int pos = s.indexOf(')');
+		if(pos > 0)
+			s = s.substring(0, pos);
+
+		// xml tokens must start with a letter
+		String letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_/";
+
+		// after the leading letter, xml tokens may have
+		// digits, period, or hyphen
+		String nameChars = letters + "0123456789.-";
+
+		// special characters that should be replaced with valid text
+		// all other invalid characters will be removed
+		HashMap<String, String> swapChars = new HashMap<String, String>();
+		swapChars.put("!", "");
+		swapChars.put("#", "");
+		swapChars.put("\\*", "");
+		swapChars.put("'", "");
+		swapChars.put("\"", "");
+		swapChars.put("%", "");
+		swapChars.put("<", "");
+		swapChars.put(">", "");
+		swapChars.put("=", "");
+		//swapChars.put("/", "");
+		swapChars.put("\\\\", "");
+
+		s = s.replace("'", "");
+
+		// start by cleaning whitespace and converting to lowercase
+		s = s.replaceAll("^\\s+", "").replaceAll("\\s+$", "").replaceAll("\\s+", "").toLowerCase();
+
+		// swap characters
+		Set<Entry<String, String>> swaps = swapChars.entrySet();
+		for (Entry<String, String> entry : swaps) {
+			if (entry.getValue() != null)
+				s = s.replaceAll(entry.getKey(), entry.getValue());
+			else
+				s = s.replaceAll(String.valueOf(entry.getKey()), "");
+		}
+
+		// ensure that invalid characters and consecutive underscores are
+		// removed
+		String token = "";
+		boolean underscoreFlag = false;
+		for (int i = 0; i < s.length(); i++) {
+			if (nameChars.indexOf(s.charAt(i)) != -1) {
+				if (s.charAt(i) != '_' || !underscoreFlag) {
+					token += s.charAt(i);
+					underscoreFlag = (s.charAt(i) == '_');
+				}
+			}
+		}
+
+		// remove extraneous underscores before returning token
+		token = token.replaceAll("_+", "_");
+		token = token.replaceAll("_+$", "");
+
+		// make sure token starts with valid letter
+		if (letters.indexOf(token.charAt(0)) == -1 || token.startsWith("xml"))
+			token = "" + token;
+
+		// return token
+		return token.trim();
+	}
+	
+	/**
+	 * Check if a character is a control character. Examples of control characters are
+	 * ALT, CTRL, ESCAPE, DELETE, SHIFT, HOME, PAGE_UP, BACKSPACE, ENTER, TAB, LEFT, and more.
+	 * 
+	 * @param keyCode the character code.
+	 * @return true if yes, else false.
+	 */
+	public static boolean isControlChar(char keyCode){
+		int code = keyCode;
+		return (code == KeyCodes.KEY_ALT || code == KeyCodes.KEY_BACKSPACE ||
+				code == KeyCodes.KEY_CTRL || code == KeyCodes.KEY_DELETE ||
+				code == KeyCodes.KEY_DOWN || code == KeyCodes.KEY_END ||
+				code == KeyCodes.KEY_ENTER || code == KeyCodes.KEY_ESCAPE ||
+				code == KeyCodes.KEY_HOME || code == KeyCodes.KEY_LEFT ||
+				code == KeyCodes.KEY_PAGEDOWN || code == KeyCodes.KEY_PAGEUP ||
+				code == KeyCodes.KEY_RIGHT || code == KeyCodes.KEY_SHIFT);
+	}
 }

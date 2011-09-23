@@ -141,17 +141,24 @@ public class Condition implements Serializable, BindingChangeListener {
 						value = tempValue;
 						if(qn.getAnswer() == null || qn.getAnswer().trim().length() == 0)
 							return true; //Both questions not answered yet
-						return false;
+						//return false;
+						return (operator == ModelConstants.OPERATOR_NOT_EQUAL || operator == ModelConstants.OPERATOR_NOT_BETWEEN ||
+								operator == ModelConstants.OPERATOR_NOT_CONTAIN || operator == ModelConstants.OPERATOR_NOT_END_WITH ||
+								operator == ModelConstants.OPERATOR_NOT_IN_LIST || operator == ModelConstants.OPERATOR_NOT_START_WITH);
 					}
 					else if(qn.getAnswer() == null || qn.getAnswer().trim().length() == 0){
 						value = tempValue;
-						return false;
+						//return false;
 						//return validation; //TODO Do we really need validations to return true when qtn is not answered?
+						return (operator == ModelConstants.OPERATOR_NOT_EQUAL || operator == ModelConstants.OPERATOR_NOT_BETWEEN ||
+								operator == ModelConstants.OPERATOR_NOT_CONTAIN || operator == ModelConstants.OPERATOR_NOT_END_WITH ||
+								operator == ModelConstants.OPERATOR_NOT_IN_LIST || operator == ModelConstants.OPERATOR_NOT_START_WITH);
 					}
 				}
 			}
 
-			switch(qn.getDataType()){
+			if(function == ModelConstants.FUNCTION_VALUE){
+				switch(qn.getDataType()){
 			case QuestionDef.QTN_TYPE_TEXT:
 				ret = isTextTrue(qn,validation);
 				break;
@@ -182,6 +189,10 @@ public class Condition implements Serializable, BindingChangeListener {
 				ret = isTextTrue(qn,validation);
 				break;
 			}
+			}
+			else{
+				ret = isLengthTrue(qn);
+			}
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
@@ -190,6 +201,69 @@ public class Condition implements Serializable, BindingChangeListener {
 		value = tempValue;
 
 		return ret;
+	}
+
+	private Integer getRepeatQtnAnswerLength(String answer){
+		try{
+			return Integer.parseInt(answer);
+		}
+		catch(Exception ex){
+			ex.printStackTrace();
+		}
+		
+		return -1;
+	}
+	
+	private Integer getMultipleSelectAnswerLength(String answer){
+		if(answer == null)
+			return 0;
+		
+		String[] answers = answer.split(",");
+		
+		//Check if we should use space separator.
+		if(answer.indexOf(',') < 0)
+			answers = answer.split(" ");
+		
+		return answers.length;
+	}
+	
+	private boolean isLengthTrue(QuestionDef qtn){
+		String answer = qtn.getAnswer();
+
+		if(answer == null || answer.trim().length() == 0)
+			return true;
+
+		long len1 = 0, len2 = 0, len = 0;
+		if(value != null && value.trim().length() > 0)
+			len1 = Long.parseLong(value);
+		if(secondValue != null && secondValue.trim().length() > 0)
+			len2 = Long.parseLong(secondValue);
+
+		if(qtn.getDataType() == QuestionDef.QTN_TYPE_REPEAT)
+			len = getRepeatQtnAnswerLength(answer);
+		else if(qtn.getDataType() == QuestionDef.QTN_TYPE_LIST_MULTIPLE)
+			len = getMultipleSelectAnswerLength(answer);
+		else
+			len = answer.trim().length();
+
+		if(operator == ModelConstants.OPERATOR_EQUAL)
+			return len == len1;
+		else if(operator == ModelConstants.OPERATOR_NOT_EQUAL)
+			return len != len1;
+		else if(operator == ModelConstants.OPERATOR_LESS)
+			return len < len1;
+		else if(operator == ModelConstants.OPERATOR_LESS_EQUAL)
+			return len <= len1;
+		else if(operator == ModelConstants.OPERATOR_GREATER)
+			return len > len1;
+		else if(operator == ModelConstants.OPERATOR_GREATER_EQUAL)
+			return len >= len1;
+		else if(operator == ModelConstants.OPERATOR_BETWEEN)
+			return len > len1 && len < len2;
+		else if(operator == ModelConstants.OPERATOR_NOT_BETWEEN)
+			return !(len > len1 && len < len2);
+
+		return false;
 	}
 
 	/**
@@ -233,9 +307,9 @@ public class Condition implements Serializable, BindingChangeListener {
 			else if(operator == ModelConstants.OPERATOR_GREATER_EQUAL)
 				return answer > longValue || longValue == answer;
 			else if(operator == ModelConstants.OPERATOR_BETWEEN)
-				return answer > longValue && longValue < secondLongValue;
+				return answer > longValue && answer < secondLongValue;
 			else if(operator == ModelConstants.OPERATOR_NOT_BETWEEN)
-				return !(answer > longValue && longValue < secondLongValue);
+				return !(answer > longValue && answer < secondLongValue);
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
@@ -255,14 +329,13 @@ public class Condition implements Serializable, BindingChangeListener {
 	private boolean isTextTrue(QuestionDef qtn, boolean validation){
 		String answer = qtn.getAnswer();
 
-		if(function == ModelConstants.FUNCTION_VALUE){
-			if(answer == null || answer.trim().length() == 0){
-				if(validation && operator == ModelConstants.OPERATOR_IS_NOT_NULL)
-					return false;
-				else if(validation || operator == ModelConstants.OPERATOR_NOT_EQUAL ||
-						operator == ModelConstants.OPERATOR_NOT_START_WITH ||
-						operator == ModelConstants.OPERATOR_NOT_CONTAIN)
-					return true;
+		if(answer == null || answer.trim().length() == 0){
+			if(validation && operator == ModelConstants.OPERATOR_IS_NOT_NULL)
+				return false;
+			else if(validation || operator == ModelConstants.OPERATOR_NOT_EQUAL ||
+					operator == ModelConstants.OPERATOR_NOT_START_WITH ||
+					operator == ModelConstants.OPERATOR_NOT_CONTAIN)
+				return true;
 
 				return operator == ModelConstants.OPERATOR_IS_NULL;
 			}
@@ -279,38 +352,12 @@ public class Condition implements Serializable, BindingChangeListener {
 				return !answer.startsWith(value);
 			else if(operator == ModelConstants.OPERATOR_CONTAINS)
 				return answer.contains(value);
-			else if(operator == ModelConstants.OPERATOR_NOT_CONTAIN)
-				return !answer.contains(value);
-		}
-		else{
-			if(answer == null || answer.trim().length() == 0)
-				return true;
-
-			long len1 = 0, len2 = 0, len = 0;
-			if(value != null && value.trim().length() > 0)
-				len1 = Long.parseLong(value);
-			if(secondValue != null && secondValue.trim().length() > 0)
-				len2 = Long.parseLong(secondValue);
-
-			len = answer.trim().length();
-
-			if(operator == ModelConstants.OPERATOR_EQUAL)
-				return len == len1;
-			else if(operator == ModelConstants.OPERATOR_NOT_EQUAL)
-				return len != len1;
-			else if(operator == ModelConstants.OPERATOR_LESS)
-				return len < len1;
-			else if(operator == ModelConstants.OPERATOR_LESS_EQUAL)
-				return len <= len1;
-			else if(operator == ModelConstants.OPERATOR_GREATER)
-				return len > len1;
-				else if(operator == ModelConstants.OPERATOR_GREATER_EQUAL)
-					return len >= len1;
-					else if(operator == ModelConstants.OPERATOR_BETWEEN)
-						return len > len1 && len < len2;
-						else if(operator == ModelConstants.OPERATOR_NOT_BETWEEN)
-							return !(len > len1 && len < len2);
-		}
+		else if(operator == ModelConstants.OPERATOR_NOT_CONTAIN)
+			return !answer.contains(value);
+		else if(operator == ModelConstants.OPERATOR_ENDS_WITH)
+			return answer.endsWith(value);
+		else if(operator == ModelConstants.OPERATOR_NOT_END_WITH)
+			return !answer.endsWith(value);
 
 		return false;
 	}
@@ -364,9 +411,9 @@ public class Condition implements Serializable, BindingChangeListener {
 			else if(operator == ModelConstants.OPERATOR_GREATER_EQUAL)
 				return answer.after(dateValue) || dateValue.equals(answer);
 			else if(operator == ModelConstants.OPERATOR_BETWEEN)
-				return answer.after(dateValue) && dateValue.before(secondDateValue);
+				return answer.after(dateValue) && answer.before(secondDateValue);
 			else if(operator == ModelConstants.OPERATOR_NOT_BETWEEN)
-				return !(answer.after(dateValue) && dateValue.before(secondDateValue));
+				return !(answer.after(dateValue) && answer.before(secondDateValue));
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
@@ -423,7 +470,7 @@ public class Condition implements Serializable, BindingChangeListener {
 				if(validation && operator == ModelConstants.OPERATOR_IS_NOT_NULL)
 					return false;
 				else if(validation || operator == ModelConstants.OPERATOR_NOT_EQUAL || 
-						operator == ModelConstants.OPERATOR_NOT_IN_LIST)
+						operator == ModelConstants.OPERATOR_NOT_CONTAIN)
 					return true;
 				return operator == ModelConstants.OPERATOR_IS_NULL;
 			}
@@ -436,10 +483,10 @@ public class Condition implements Serializable, BindingChangeListener {
 				return qtn.getAnswer().contains(value); //qtn.getAnswer().equals(value);
 			case ModelConstants.OPERATOR_NOT_EQUAL:
 				return !qtn.getAnswer().contains(value); //!qtn.getAnswer().equals(value);
-			case ModelConstants.OPERATOR_IN_LIST:
-				return value.contains(qtn.getAnswer());
-			case ModelConstants.OPERATOR_NOT_IN_LIST:
-				return !value.contains(qtn.getAnswer());
+			case ModelConstants.OPERATOR_CONTAINS:
+				return multipleSelectContains(value, qtn.getAnswer(), validation);
+			case ModelConstants.OPERATOR_NOT_CONTAIN:
+				return !multipleSelectContains(value, qtn.getAnswer(), validation);
 			default:
 				return false;
 			}
@@ -450,6 +497,39 @@ public class Condition implements Serializable, BindingChangeListener {
 		return false;
 	}
 
+	
+	/**
+	 * Checks if there is any multiple select answer option contained in a condition value.
+	 * 
+	 * @param conditionValue the condition value.
+	 * @param multipleSelectAnswer the multiple select answer.
+	 * @param validation has value of true if this is a validation logic condition, else false if skip logic one.
+	 * @return true if there is, else false.
+	 */
+	private boolean multipleSelectContains(String conditionValue, String multipleSelectAnswer, boolean validation){
+		if(conditionValue == null || multipleSelectAnswer == null)
+			return false;
+		
+		String[] answers = multipleSelectAnswer.split(",");
+		String[] values = conditionValue.split(",");
+		if(answers == null || values == null)
+			return false;
+		
+		//Check if we should use space separator.
+		if(validation && multipleSelectAnswer.indexOf(',') < 0)
+			answers = multipleSelectAnswer.split(" ");
+		
+		for(int index = 0; index < answers.length; index++){
+			String answer = answers[index].trim();
+			for(int i = 0; i < values.length; i++){
+				if(values[i].trim().equals(answer))
+					return true;
+			}
+		}
+		
+		return false;
+	}
+	
 
 	/**
 	 * Check to see if a condition, attached to a single select question, is true.
@@ -536,9 +616,9 @@ public class Condition implements Serializable, BindingChangeListener {
 			else if(operator == ModelConstants.OPERATOR_GREATER_EQUAL)
 				return answer > doubleValue || doubleValue == answer;
 			else if(operator == ModelConstants.OPERATOR_BETWEEN)
-				return answer > doubleValue && doubleValue < secondDoubleValue;
+				return answer > doubleValue && answer < secondDoubleValue;
 			else if(operator == ModelConstants.OPERATOR_NOT_BETWEEN)
-				return !(answer > doubleValue && doubleValue < secondDoubleValue);
+				return !(answer > doubleValue && answer < secondDoubleValue);
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
@@ -640,5 +720,27 @@ public class Condition implements Serializable, BindingChangeListener {
 	public void removeBindingChangeListeners(){
 		if(bindingChangeSrc != null)
 			bindingChangeSrc.removeBindingChangeListener(this);
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + id;
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Condition other = (Condition) obj;
+		if (id != other.id)
+			return false;
+		return true;
 	}
 }

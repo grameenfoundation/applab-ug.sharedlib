@@ -215,6 +215,10 @@ public class XformBuilderUtil {
 			return isPositiveAction(action) ? "!=" : "=";
 		else if(operator == ModelConstants.OPERATOR_IS_NULL)
 			return isPositiveAction(action) ? "=" : "!=";
+		else if(operator == ModelConstants.OPERATOR_NOT_CONTAIN)
+			return isPositiveAction(action) ? "!=" : "=";
+		else if(operator == ModelConstants.OPERATOR_CONTAINS)
+			return isPositiveAction(action) ? "=" : "!=";
 		
 		return "=";
 	}

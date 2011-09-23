@@ -78,29 +78,22 @@ public class RepeatQtnsDef implements Serializable {
 		if (questions == null)
 			questions = new Vector();
 
-		// qtn.setId((byte)(questions.size()+1)); id should be set somewhere
-		// else
-		if (refQtn == null)
+		//qtn.setId((byte)(questions.size()+1)); id should be set somewhere else
+		if(refQtn == null)
 			questions.addElement(qtn);
 		else
 			questions.add(questions.indexOf(refQtn) + 1, qtn);
 	}
 
-	public void removeQuestion(QuestionDef qtnDef, FormDef formDef) {
-		if (qtnDef.getControlNode() != null
-				&& qtnDef.getControlNode().getParentNode() != null)
-			qtnDef.getControlNode().getParentNode()
-					.removeChild(qtnDef.getControlNode());
-		if (qtnDef.getDataNode() != null
-				&& qtnDef.getDataNode().getParentNode() != null)
-			qtnDef.getDataNode().getParentNode()
-					.removeChild(qtnDef.getDataNode());
-		if (qtnDef.getBindNode() != null
-				&& qtnDef.getBindNode().getParentNode() != null)
-			qtnDef.getBindNode().getParentNode()
-					.removeChild(qtnDef.getBindNode());
-
-		if (formDef != null)
+	public void removeQuestion(QuestionDef qtnDef, FormDef formDef){
+		if(qtnDef.getControlNode() != null && qtnDef.getControlNode().getParentNode() != null)
+			qtnDef.getControlNode().getParentNode().removeChild(qtnDef.getControlNode());
+		if(qtnDef.getDataNode() != null && qtnDef.getDataNode().getParentNode() != null)
+			qtnDef.getDataNode().getParentNode().removeChild(qtnDef.getDataNode());
+		if(qtnDef.getBindNode() != null && qtnDef.getBindNode().getParentNode() != null)
+			qtnDef.getBindNode().getParentNode().removeChild(qtnDef.getBindNode());
+		
+		if(formDef != null)
 			formDef.removeQtnFromRules(qtnDef);
 
 		questions.removeElement(qtnDef);
@@ -144,9 +137,8 @@ public class RepeatQtnsDef implements Serializable {
 			return;
 
 		this.questions = new Vector();
-		for (int i = 0; i < questions.size(); i++)
-			this.questions.addElement(new QuestionDef((QuestionDef) questions
-					.elementAt(i), qtnDef));
+		for(int i=0; i<questions.size(); i++)
+			this.questions.addElement(new QuestionDef((QuestionDef)questions.elementAt(i),qtnDef));
 	}
 
 	public void moveQuestionUp(QuestionDef questionDef) {
@@ -157,21 +149,16 @@ public class RepeatQtnsDef implements Serializable {
 		PageDef.moveQuestionDown(questions, questionDef);
 	}
 
-	public void updateDoc(Document doc, Element xformsNode, FormDef formDef,
-			Element formNode, Element modelNode, Element groupNode,
-			boolean withData, String orgFormVarName) {
-		if (questions == null)
+	public void updateDoc(Document doc, Element xformsNode, FormDef formDef, Element formNode, Element modelNode,Element groupNode, boolean withData, String orgFormVarName){
+		if(questions == null)
 			return;
-
-		for (int i = 0; i < questions.size(); i++) {
-			QuestionDef questionDef = (QuestionDef) questions.elementAt(i);
-			questionDef.updateDoc(doc, xformsNode, formDef,
-					qtnDef.getDataNode(), modelNode, qtnDef.getControlNode(),
-					true /* false */, withData, orgFormVarName,
-					qtnDef.getBinding());
+		
+		for(int i=0; i<questions.size(); i++){
+			QuestionDef questionDef = (QuestionDef)questions.elementAt(i);
+			questionDef.updateDoc(doc,xformsNode,formDef,qtnDef.getDataNode(),modelNode,qtnDef.getControlNode(), true /*false*/ ,withData,orgFormVarName, qtnDef.getBinding());
 		}
 	}
-
+	
 	/**
 	 * Gets a question identified by a variable name.
 	 * 
@@ -246,9 +233,8 @@ public class RepeatQtnsDef implements Serializable {
 		if (questions == null)
 			return;
 
-		for (int i = 0; i < questions.size(); i++)
-			((QuestionDef) questions.elementAt(i))
-					.updateDataNodes(parentDataNode);
+		for(int i=0; i<questions.size(); i++)
+			((QuestionDef)questions.elementAt(i)).updateDataNodes(parentDataNode);
 	}
 
 	public void setMaxRows(byte maxRows) {
@@ -259,15 +245,11 @@ public class RepeatQtnsDef implements Serializable {
 		return maxRows;
 	}
 
-	public void buildLanguageNodes(String parentXpath,
-			com.google.gwt.xml.client.Document doc, Element parentXformNode,
-			Element parentLangNode, Map<String, String> changedXpaths) {
-		if (questions == null)
+	public void buildLanguageNodes(String parentXpath,com.google.gwt.xml.client.Document doc, Element parentXformNode, Element parentLangNode, Map<String, String> changedXpaths){
+		if(questions == null)
 			return;
 
-		for (int i = 0; i < questions.size(); i++)
-			((QuestionDef) questions.elementAt(i)).buildLanguageNodes(
-					parentXpath, doc, parentXformNode, parentLangNode,
-					changedXpaths);
+		for(int i=0; i<questions.size(); i++)
+			((QuestionDef)questions.elementAt(i)).buildLanguageNodes(parentXpath,doc,parentXformNode,parentLangNode, changedXpaths);
 	}
 }
