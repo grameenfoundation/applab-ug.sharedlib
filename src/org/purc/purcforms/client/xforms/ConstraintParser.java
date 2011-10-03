@@ -206,7 +206,7 @@ public class ConstraintParser {
 		else
 			condition.setOperator(ModelConstants.OPERATOR_IS_NULL);
 
-		if(constraint.contains("length(.)") || constraint.contains("count(.)"))
+		if(constraint.contains("length(.)") || constraint.contains("count-selected(.)"))
 			condition.setFunction(ModelConstants.FUNCTION_LENGTH);
 		else{
 			//correct back the contains and not contain operators for multiple selects.

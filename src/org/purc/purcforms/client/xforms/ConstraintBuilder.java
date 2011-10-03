@@ -110,8 +110,14 @@ public class ConstraintBuilder {
 			constraint = ". ";
 			//if(actionQtnDef.getDataType() == QuestionDef.QTN_TYPE_REPEAT)
 			//	constraint = "count(.) ";
-			if(condition.getFunction() == ModelConstants.FUNCTION_LENGTH)
-				constraint = "length(.) ";
+			if(condition.getFunction() == ModelConstants.FUNCTION_LENGTH) {
+				if (FormUtil.isJavaRosaSaveFormat()) {
+					constraint = "count-selected(.)";
+				}
+				else {
+					constraint = "length(.) ";
+				}
+			}
 			
 			if(condition.getOperator() == ModelConstants.OPERATOR_BETWEEN)
 				 constraint += XformBuilderUtil.getXpathOperator(ModelConstants.OPERATOR_GREATER,action)+value + " and "+ "." + XformBuilderUtil.getXpathOperator( ModelConstants.OPERATOR_LESS,action) + " " + condition.getSecondValue();
