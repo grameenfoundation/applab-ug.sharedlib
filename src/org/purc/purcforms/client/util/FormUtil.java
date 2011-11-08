@@ -21,6 +21,7 @@ import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.http.client.Response;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.resources.client.ImageResource;
@@ -45,9 +46,39 @@ import com.google.gwt.xml.client.Element;
  */
 public class FormUtil {
 
-	public static final String SAVE_DECIMAL_SEPARATOR = ".";
-	
-	/** Parameter for the form id. e.g formId, surveyId, questionaireId, etc. */
+    //Parameter indicating whether to show the Xforms Xml tab
+    private static final String PARAM_NAME_SHOW_XFORMS_SOURCE_TAB = "showXformsSourceTab";
+
+    //Parameter indicating whether to show the Design Surface tab
+    private static final String PARAM_NAME_SHOW_DESIGN_SURFACE_TAB = "showDesignSurfaceTab";
+
+    //Parameter indicating whether to show the Preview tab
+    private static final String PARAM_NAME_SHOW_PREVIEW_TAB = "showPreviewTab";
+
+    //Parameter indicating whether to show the Layout Xml tab
+    private static final String PARAM_NAME_SHOW_LAYOUTXML_TAB = "showLayoutXmlTab";
+
+    //Parameter indicating whether to show the Javascript tab
+    private static final String PARAM_NAME_SHOW_JAVASCRIPT_TAB = "showJavaScriptTab";
+
+    //Parameter indicating whether to show the Model tab
+    private static final String PARAM_NAME_SHOW_MODELXML_TAB = "showModelXmlTab";
+
+    //Parameter indicating whether to show the Language tab
+    private static final String PARAM_NAME_SHOW_LANGUAGE_TAB = "showLanguageTab";
+
+    //Parameter indicating the name of the form 
+    private static final String PARAM_NAME_FORM_DISPLAY_NAME = "formDisplayName";
+
+    /** 
+     * Parameter to indicate whether to show the Dynamic Lists tab 
+     * it is not useful in javarosa at the moment
+     */
+    private static final String PARAM_NAME_SHOW_DYNAMIC_LISTS_TAB = "showDynamicListsTab";
+
+    public static final String SAVE_DECIMAL_SEPARATOR = ".";
+
+    /** Parameter for the form id. e.g formId, surveyId, questionaireId, etc. */
     private static final String PARAM_NAME_FORM_ID_NAME = "formIdName";
     
     /** 
@@ -113,11 +144,20 @@ public class FormUtil {
     private static String fileSaveUrlSuffix;
     private static String gpsTypeName;
     private static String saveFormat;
-	private static String undoRedoBufferSize;
-	private static boolean combineFormOnSave = true;
-	private static boolean rebuildBindings = false;
-	private static boolean readOnlyMode = false;
-	private static boolean overwriteValidationsOnRefresh = false;
+    private static String undoRedoBufferSize;
+
+    private static boolean combineFormOnSave = true;
+    private static boolean rebuildBindings = false;
+    private static boolean readOnlyMode = false;
+    private static boolean overwriteValidationsOnRefresh = false;
+    private static boolean showJavaScriptTab = false;
+    private static boolean showXformsSourceTab =true;
+    private static boolean showPreviewTab = false;
+    private static boolean showModelXmlTab = false;
+    private static boolean showLayoutXmlTab = false;
+    private static boolean showLanguageTab = false;
+    private static boolean showDesignSurfaceTab = false;
+    private static boolean showDynamicListsTab = false;
 
 	public static String JAVAROSA = "javarosa";
 	
@@ -149,6 +189,8 @@ public class FormUtil {
     /** The default font size, in pixels, used by the form designer. */
     private static String defaultFontSize;
 
+    private static String formDisplayName;
+
     /** Flag determining whether to append the entity id to the url 
      * we go to after a form submission. eg ........?patientId=13
      */
@@ -170,6 +212,8 @@ public class FormUtil {
 
     /** The dialog used to show all progress messages. */
     public static ProgressDialog dlg = new ProgressDialog();
+
+    
 
     /**
      * Maximizes a widget.
@@ -552,7 +596,25 @@ public class FormUtil {
             if("0".equals(s) || "false".equals(s))
                 combineFormOnSave = false;
         }
-        
+
+        s = getDivValue(PARAM_NAME_SHOW_XFORMS_SOURCE_TAB);
+        if (s != null && s.trim().length() > 0) {
+            if ("0".equals(s) || "false".equals(s))
+                showXformsSourceTab = false;
+        }
+
+        s = getDivValue(PARAM_NAME_SHOW_DESIGN_SURFACE_TAB);
+        if (s != null && s.trim().length() > 0) {
+            if ("0".equals(s) || "false".equals(s))
+                showDesignSurfaceTab = false;
+        }
+
+        s = getDivValue(PARAM_NAME_SHOW_PREVIEW_TAB);
+        if (s != null && s.trim().length() > 0) {
+            if ("0".equals(s) || "false".equals(s))
+                showPreviewTab = false;
+        }
+
         s = getDivValue(PARAM_NAME_REBUILD_BINDINGS);
         if(s != null && s.trim().length() > 0){
             if("1".equals(s) || "true".equals(s))
@@ -596,7 +658,7 @@ public class FormUtil {
         }
         
         //remove the starting ? characher.
-        queryString = queryString.substring(1); 
+        queryString = URL.decode(queryString.substring(1)); 
         
         String[] parameters = queryString.split("&");
         if(parameters == null){
@@ -641,23 +703,50 @@ public class FormUtil {
      * @param name is the name of the parameter.
      * @param value is the value of the parameter;
      */
-    private static void setParameterValue(String name, String value){
-        //TODO Need to set more parameters. I started with only the urgently needed ones.
-        
-        if(PARAM_NAME_READONLY.equalsIgnoreCase(name))
+    private static void setParameterValue(String name, String value) {
+
+        if (PARAM_NAME_READONLY.equalsIgnoreCase(name))
             readOnlyMode = fromString2Boolean(value);
-        
-        if(PARAM_NAME_REBUILD_BINDINGS.equalsIgnoreCase(name))
+
+        if (PARAM_NAME_REBUILD_BINDINGS.equalsIgnoreCase(name))
             rebuildBindings = fromString2Boolean(value);
-        
-        if(PARAM_NAME_COMBINE_FORM_ON_SAVE.equalsIgnoreCase(name))
+
+        if (PARAM_NAME_COMBINE_FORM_ON_SAVE.equalsIgnoreCase(name))
             combineFormOnSave = fromString2Boolean(value);
-        
-        if(PARAM_NAME_FORM_ID_NAME.equalsIgnoreCase(name))
+
+        if (PARAM_NAME_FORM_ID_NAME.equalsIgnoreCase(name))
             formIdName = value;
-        
-        if(PARAM_NAME_SAVE_FORMAT.equalsIgnoreCase(name))
+
+        if (PARAM_NAME_SAVE_FORMAT.equalsIgnoreCase(name))
             saveFormat = value;
+
+        if (PARAM_NAME_SHOW_JAVASCRIPT_TAB.equalsIgnoreCase(name)) 
+            showJavaScriptTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_SHOW_MODELXML_TAB.equalsIgnoreCase(name)) 
+            showModelXmlTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_SHOW_LAYOUTXML_TAB.equalsIgnoreCase(name)) 
+            showLayoutXmlTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_SHOW_LANGUAGE_TAB.equalsIgnoreCase(name)) 
+            showLanguageTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_SHOW_XFORMS_SOURCE_TAB.equalsIgnoreCase(name)) 
+            showXformsSourceTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_SHOW_DESIGN_SURFACE_TAB.equalsIgnoreCase(name)) 
+            showDesignSurfaceTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_SHOW_PREVIEW_TAB.equalsIgnoreCase(name)) 
+            showPreviewTab = fromString2Boolean(value);
+
+        if (PARAM_NAME_FORM_DISPLAY_NAME.equalsIgnoreCase(name)) 
+            formDisplayName = value;
+
+        if (PARAM_NAME_SHOW_DYNAMIC_LISTS_TAB.equalsIgnoreCase(name))
+            showDynamicListsTab = fromString2Boolean(value);
+
     }
 
     public static String getDivValue(String id){
@@ -728,7 +817,39 @@ public class FormUtil {
         dateSubmitFormat = DateTimeFormat.getFormat(format);
     }
 
-    public static DateTimeFormat getDateSubmitFormat(){
+    public static boolean isShowXformsSourceTab() {
+		return showXformsSourceTab;
+	}
+
+	public static boolean isShowJavaScriptTab() {
+        return showJavaScriptTab;
+    }
+
+    public static boolean isShowModelXmlTab() {
+        return showModelXmlTab;
+    }
+
+    public static boolean isShowLanguageTab() {
+        return showLanguageTab;
+    }
+
+    public static boolean isShowLayoutXmlTab() {
+        return showLayoutXmlTab;
+    }
+
+	public static boolean isShowPreviewTab() {
+		return showPreviewTab;
+	}
+
+	public static boolean isShowDesignSurfaceTab() {
+		return showDesignSurfaceTab;
+	}
+
+	public static boolean isShowDynamicListsTab() {
+		return showDynamicListsTab;
+	}
+
+	public static DateTimeFormat getDateSubmitFormat(){
         return dateSubmitFormat;
 	}
 	
@@ -788,7 +909,36 @@ public class FormUtil {
         return formIdName;
     }
 
-    public static String getEntityIdName(){
+    public static String getFormDisplayName() {
+        return formDisplayName;
+    }
+
+    /**
+     * Instead of the usual  new_form1 as the form id
+     * We want to have the form id as a variant of 
+     * the form display name so we convert the display
+     * name to lower case and then replace any white space
+     * characters with an underscore
+     */
+    public static String getFormDisplayNameId() {
+        String displayNameId = getFormDisplayName();
+        String[] splitArray = displayNameId.toLowerCase().split("\\s+");
+        String displayId = "";
+        if (splitArray.length > 0) {
+            for (String array : splitArray) {
+                if (!(array.isEmpty())) {
+                    displayId = displayId + "_" + array;
+                }
+            }
+            displayId = displayId.substring(1);
+        }
+        else {
+            displayId = displayNameId;
+        }
+        return displayId;
+    }
+
+	public static String getEntityIdName(){
         return entityIdName;
     }
 
