@@ -418,6 +418,8 @@ public class QuestionDef implements Serializable{
 	}
 
 	public void setBinding(String variableName) {
+		if (variableName.indexOf('/') > 0)
+			variableName = variableName.substring(variableName.lastIndexOf('/') + 1);
 		boolean changed = this.binding != variableName;
 
 		this.binding = variableName;
@@ -730,25 +732,12 @@ public class QuestionDef implements Serializable{
 
 		if(node != null){
 			String binding = this.binding;
-			if(!binding.startsWith("/"+ formDef.getBinding()+"/") && appendParentBinding){
-				//if(!binding.contains("/"+ formDef.getVariableName()+"/"))
-				if(!binding.startsWith(formDef.getBinding()+"/")){
-					if(parentBinding != null && !binding.contains("/"))
-						binding = "/"+ formDef.getBinding()+"/" + parentBinding + "/" + binding;
-					else{
-						binding = "/"+ formDef.getBinding() + (binding.startsWith("/") ? "" : "/") + binding;
-					}
-				}
-				else{
-					this.binding = "/" + this.binding; //correct user binding syntax error
-					binding = this.binding;
-				}
-			}
+			String parentBindingPath = node.getAttribute("nodeset").substring(0, node.getAttribute("nodeset").lastIndexOf('/'));
 
 			if(dataType != QuestionDef.QTN_TYPE_REPEAT)
 				node.setAttribute(XformConstants.ATTRIBUTE_NAME_TYPE, XformBuilderUtil.getXmlType(dataType,node));
 			if(node.getAttribute(XformConstants.ATTRIBUTE_NAME_NODESET) != null)
-				node.setAttribute(XformConstants.ATTRIBUTE_NAME_NODESET,binding);
+				node.setAttribute(XformConstants.ATTRIBUTE_NAME_NODESET, parentBindingPath + '/' + binding);
 			if(node.getAttribute(XformConstants.ATTRIBUTE_NAME_REF) != null)
 				node.setAttribute(XformConstants.ATTRIBUTE_NAME_REF,binding);
 
@@ -1508,12 +1497,14 @@ public class QuestionDef implements Serializable{
 		String xpath = parentXpath + FormUtil.getNodePath(controlNode,parentXformNode);
 
 		if(dataType == QuestionDef.QTN_TYPE_REPEAT){
-			Element parent = (Element)controlNode.getParentNode();
-			xpath = parentXpath + FormUtil.getNodePath(parent,parentXformNode);
-
-			String id = parent.getAttribute(XformConstants.ATTRIBUTE_NAME_ID);
-			if(id != null && id.trim().length() > 0)
-				xpath += "[@" + XformConstants.ATTRIBUTE_NAME_ID + "='" + id + "']";
+			if (!(this.parent instanceof QuestionDef)) {
+				Element parent = (Element)controlNode.getParentNode();
+				xpath = parentXpath + FormUtil.getNodePath(parent,parentXformNode);
+	
+				String id = parent.getAttribute(XformConstants.ATTRIBUTE_NAME_ID);
+				if(id != null && id.trim().length() > 0)
+					xpath += "[@" + XformConstants.ATTRIBUTE_NAME_ID + "='" + id + "']";
+			}
 		}
 		else{
 			String id = controlNode.getAttribute(XformConstants.ATTRIBUTE_NAME_BIND);

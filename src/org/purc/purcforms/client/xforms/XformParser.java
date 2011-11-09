@@ -425,7 +425,7 @@ public class XformParser {
 						formDef.addPage(pageDef);
 						formDef.moveQuestion2Page(parentQtn, pageNo, formDef);
 					}
-					else if(((PageDef)parentQtn.getParent()).getPageNo() == 1 && pageNo != 1 /*!= pageNo*/)
+					else if (parentQtn.getParent() instanceof PageDef && ((PageDef)parentQtn.getParent()).getPageNo() == 1 && pageNo != 1 /*!= pageNo*/)
 						formDef.moveQuestion2Page(parentQtn, pageNo, formDef); //Must be a repeat kid in a wrong page. (page 1)
 				}
 
@@ -824,6 +824,7 @@ public class XformParser {
 
 			//TODO second addition for repeats
 			Element parent = (Element)child.getParentNode(); 
+			Element grandParent = (Element)parent.getParentNode();
 			//if(parent.getNodeName().equals(NODE_NAME_REPEAT)||parent.getNodeName().equals(NODE_NAME_REPEAT_MINUS_PREFIX)){
 			if(XmlUtil.nodeNameEquals(parent.getNodeName(),XformConstants.NODE_NAME_REPEAT_MINUS_PREFIX)){
 				varName = (String)id2VarNameMap.get(parent.getAttribute(XformConstants.ATTRIBUTE_NAME_BIND) != null ? parent.getAttribute(XformConstants.ATTRIBUTE_NAME_BIND) : parent.getAttribute(XformConstants.ATTRIBUTE_NAME_NODESET));
@@ -852,6 +853,39 @@ public class XformParser {
 				//Repeat bindings should not include parent portions
 				//TODO The portion after the && is a real hack and should go away.
 				if(qtn.getBinding().startsWith(varName + "/") && qtn.getBinding().indexOf('/') == qtn.getBinding().lastIndexOf('/'))
+					qtn.setBinding(qtn.getBinding().substring(varName.length() + 1));
+
+				//Remove repeat question constraint if any
+				XformParserUtil.replaceConstraintQtn(constraints,qtn);
+			}
+			else if (XmlUtil.nodeNameEquals(grandParent.getNodeName(),XformConstants.NODE_NAME_REPEAT_MINUS_PREFIX)) {
+				varName = (String)id2VarNameMap.get(grandParent.getAttribute(XformConstants.ATTRIBUTE_NAME_BIND) != null ? grandParent.getAttribute(XformConstants.ATTRIBUTE_NAME_BIND) : grandParent.getAttribute(XformConstants.ATTRIBUTE_NAME_NODESET));
+				
+				QuestionDef rptQtnDef = formDef.getQuestion(varName);
+				if (rptQtnDef == null && varName.startsWith("/" + formDef.getBinding() + "/")) {
+					varName = varName.substring(varName.indexOf('/', 1) + 1);
+					rptQtnDef = formDef.getQuestion(varName);
+				}
+				
+				qtn.setId(getNextQuestionId());
+				rptQtnDef.addRepeatQtnsDef(qtn);
+
+				//We do not want the bind node to be removed from the document as we remove the question
+				Element bindNode = qtn.getBindNode();
+				qtn.setBindNode(null);
+				//without setting this to null, the control node would be removed from the xml in the removeQuestion call that follows
+				qtn.setControlNode(null); 
+				//This should be before the data and control nodes are set because it removed them.
+				formDef.removeQuestion(qtn);
+
+				//TODO repeat kind bind node is no longer the control node.
+				//qtn.setBindNode(child);
+				qtn.setBindNode(bindNode);
+				qtn.setControlNode(child);
+				
+				//Repeat bindings should not include parent portions
+				//TODO The portion after the && is a real hack and should go away.
+				if (qtn.getBinding().startsWith(varName + "/") && qtn.getBinding().indexOf('/') == qtn.getBinding().lastIndexOf('/'))
 					qtn.setBinding(qtn.getBinding().substring(varName.length() + 1));
 
 				//Remove repeat question constraint if any

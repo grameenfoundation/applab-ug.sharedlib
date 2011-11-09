@@ -1,5 +1,7 @@
 package org.purc.purcforms.client.xforms;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.purc.purcforms.client.model.FormDef;
@@ -36,6 +38,9 @@ public class UiElementBuilder {
 			
 			if(parentBinding != null && !qtn.getBinding().contains("/"))
 				nodeset = "/" + formDef.getBinding() + "/" + parentBinding + "/" + qtn.getBinding();
+			
+			if (parentBinding != null && !qtn.getBinding().contains("/") && qtn.getParent() instanceof QuestionDef)
+				nodeset = "/" + formDef.getBinding() + "/" + createPathString(getBindingPathForRepeatQtn(qtn, new ArrayList<String>())) + "/" + qtn.getBinding();
 			
 			if(!nodeset.startsWith("/"))
 				nodeset = "/" + nodeset;
@@ -230,6 +235,18 @@ public class UiElementBuilder {
 				}
 			}
 		}
+		else {
+			RepeatQtnsDef repeatQtnsDef = qtnDef.getRepeatQtnsDef();
+			if (repeatQtnsDef.size() > 0) {
+				Element repeatNode =  doc.createElement(XformConstants.NODE_NAME_REPEAT);
+				repeatNode.setAttribute(XformConstants.ATTRIBUTE_NAME_BIND, id);
+				qtnDef.getControlNode().appendChild(repeatNode);
+				inputNode.appendChild(repeatNode);
+				for (int i = 0; i < repeatQtnsDef.size() ; i++) {
+					createQuestion(qtnDef, (QuestionDef)repeatQtnsDef.getQuestionAt(i), repeatNode, qtnDef.getDataNode(), modelNode, formDef, doc);
+				}
+			}
+		}
 	}
 
 
@@ -335,5 +352,25 @@ public class UiElementBuilder {
 				inputNode.insertBefore(hintNode, firstOptionNode);
 			qtn.setHintNode(hintNode);
 		}
+	}
+	
+	private static ArrayList<String> getBindingPathForRepeatQtn(QuestionDef qtn, ArrayList<String> parentPath) {
+		ArrayList<String> path = parentPath;	
+		if (qtn.getParent() instanceof QuestionDef) {
+			QuestionDef parentQtn = (QuestionDef)qtn.getParent();
+			path.add(parentQtn.getBinding());
+			getBindingPathForRepeatQtn(parentQtn, path);				
+		}		
+		return path;
+	}
+	
+	private static String createPathString(ArrayList<String> pathList) {
+		String pathString = "";
+		Collections.reverse(pathList);
+		for (int i = 0; i < pathList.size(); i++) {
+			pathString = pathString + pathList.get(i)+ "/";		
+		}
+		pathString = pathString.substring(0, pathString.lastIndexOf('/'));
+		return pathString;
 	}
 }
