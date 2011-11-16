@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import org.purc.purcforms.client.model.Calculation;
 import org.purc.purcforms.client.model.FormDef;
+import org.purc.purcforms.client.model.ModelConstants;
 import org.purc.purcforms.client.model.OptionDef;
 import org.purc.purcforms.client.model.PageDef;
 import org.purc.purcforms.client.model.QuestionDef;
@@ -431,7 +432,7 @@ public class XformParser {
 
 				setQuestionDataNode(questionDef,formDef,parentQtn);
 			}
-			else{
+			else if(XmlUtil.nodeNameEquals(nodeContext.getLabelNode().getParentNode().getNodeName(), XformConstants.NODE_NAME_GROUP_MINUS_PREFIX)){
 				PageDef pageDef = formDef.setPageName(nodeContext.getLabel());
 				pageDef.setLabelNode(nodeContext.getLabelNode());
 				pageDef.setPageNo(getNextPageNo());
@@ -834,16 +835,20 @@ public class XformParser {
 					varName = varName.substring(varName.indexOf('/', 1) + 1);
 					rptQtnDef = formDef.getQuestion(varName);
 				}
-				
-				qtn.setId(getNextQuestionId());
-				rptQtnDef.addRepeatQtnsDef(qtn);
+
+				if(qtn.getId() ==  ModelConstants.NULL_ID){
+					qtn.setId(getNextQuestionId());
+				}
 
 				//We do not want the bind node to be removed from the document as we remove the question
 				Element bindNode = qtn.getBindNode();
 				qtn.setBindNode(null);
-				
+
 				//This should be before the data and control nodes are set because it removed them.
 				formDef.removeQuestion(qtn);
+
+				//should add after the above call
+				rptQtnDef.addRepeatQtnsDef(qtn);
 
 				//TODO repeat kind bind node is no longer the control node.
 				//qtn.setBindNode(child);
@@ -866,17 +871,22 @@ public class XformParser {
 					varName = varName.substring(varName.indexOf('/', 1) + 1);
 					rptQtnDef = formDef.getQuestion(varName);
 				}
-				
-				qtn.setId(getNextQuestionId());
-				rptQtnDef.addRepeatQtnsDef(qtn);
+                
+                if(qtn.getId() ==  ModelConstants.NULL_ID){
+                    qtn.setId(getNextQuestionId());
+                }
 
-				//We do not want the bind node to be removed from the document as we remove the question
-				Element bindNode = qtn.getBindNode();
-				qtn.setBindNode(null);
-				//without setting this to null, the control node would be removed from the xml in the removeQuestion call that follows
-				qtn.setControlNode(null); 
-				//This should be before the data and control nodes are set because it removed them.
-				formDef.removeQuestion(qtn);
+                //We do not want the bind node to be removed from the document as we remove the question
+                Element bindNode = qtn.getBindNode();
+                qtn.setBindNode(null);
+                
+                //without setting this to null, the control node will be removed from the xml 
+                qtn.setControlNode(null); 
+                //This should be before the data and control nodes are set because it removed them.
+                formDef.removeQuestion(qtn);
+                
+                //should add after the above call
+                rptQtnDef.addRepeatQtnsDef(qtn);
 
 				//TODO repeat kind bind node is no longer the control node.
 				//qtn.setBindNode(child);

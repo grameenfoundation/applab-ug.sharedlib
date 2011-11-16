@@ -16,6 +16,7 @@ import org.purc.purcforms.client.xforms.XformUtil;
 
 import com.google.gwt.xml.client.Document;
 import com.google.gwt.xml.client.Element;
+import com.google.gwt.xml.client.Node;
 import com.google.gwt.xml.client.XMLParser;
 
 /**
@@ -804,7 +805,7 @@ public class FormDef implements Serializable{
 		pages.remove(pageDef);
 
 		if(pageDef.getGroupNode() != null)
-			xformsNode.removeChild(pageDef.getGroupNode());
+			pageDef.getGroupNode().getParentNode().removeChild(pageDef.getGroupNode());
 
 		PageDef currentPageDef;
 		List<PageDef> list = new ArrayList<PageDef>();
@@ -820,7 +821,7 @@ public class FormDef implements Serializable{
 			if(i == 0){
 				PageDef pgDef = (PageDef)list.get(i);
 				if(pgDef.getGroupNode() != null)
-					xformsNode.insertBefore(pageDef.getGroupNode(), pgDef.getGroupNode());
+					pgDef.getGroupNode().getParentNode().insertBefore(pageDef.getGroupNode(), pgDef.getGroupNode());
 			}
 			pages.add(list.get(i));
 		}
@@ -836,8 +837,9 @@ public class FormDef implements Serializable{
 
 		pages.remove(pageDef);
 
+		Node parentNode = pageDef.getGroupNode().getParentNode();
 		if(pageDef.getGroupNode() != null)
-			xformsNode.removeChild(pageDef.getGroupNode());
+			parentNode.removeChild(pageDef.getGroupNode());
 
 		PageDef currentItem; // = parent.getChild(index - 1);
 		List<PageDef> list = new ArrayList<PageDef>();
@@ -854,7 +856,7 @@ public class FormDef implements Serializable{
 
 				PageDef pgDef = (PageDef)list.get(i);
 				if(pgDef.getGroupNode() != null)
-					xformsNode.insertBefore(pageDef.getGroupNode(), pgDef.getGroupNode());
+					pgDef.getGroupNode().getParentNode().insertBefore(pageDef.getGroupNode(), pgDef.getGroupNode());
 			}
 			pages.add(list.get(i));
 		}
@@ -863,7 +865,7 @@ public class FormDef implements Serializable{
 			pages.add(pageDef);
 
 			if(pageDef.getGroupNode() != null)
-				xformsNode.appendChild(pageDef.getGroupNode());
+				parentNode.appendChild(pageDef.getGroupNode());
 		}
 	}
 
@@ -1059,6 +1061,9 @@ public class FormDef implements Serializable{
 				if(i == pageNo-1)
 					return true; //Makes no sense to move question from and back to the same page.
 
+				if((pageNo-1) >= pages.size())
+					return true;
+				
 				PageDef pageDef = (PageDef)pages.elementAt(pageNo-1);
 				Element node = qtn.getControlNode();
 				if(node != null && pageDef.getGroupNode() != null && !node.getParentNode().equals(pageDef.getGroupNode()))
