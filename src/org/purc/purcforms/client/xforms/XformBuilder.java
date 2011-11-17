@@ -192,7 +192,7 @@ public class XformBuilder {
 		//Create ui nodes for each question.
 		for(int i=0; i<questions.size(); i++){
 			QuestionDef qtn = (QuestionDef)questions.elementAt(i);
-			UiElementBuilder.fromQuestionDef2Xform(qtn,doc,xformsNode,formDef,formNode,modelNode,groupNode);
+			UiElementBuilder.fromQuestionDef2Xform(qtn,doc,xformsNode,formDef,formNode,modelNode,groupNode, true);
 		}
 	}
 }

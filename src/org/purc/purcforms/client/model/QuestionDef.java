@@ -705,7 +705,7 @@ public class QuestionDef implements Serializable{
 	public boolean updateDoc(Document doc, Element xformsNode, FormDef formDef, Element formNode, Element modelNode,Element groupNode,boolean appendParentBinding, boolean withData, String orgFormVarName, String parentBinding){
 		boolean isNew = controlNode == null;
 		if(controlNode == null) //Must be new question.
-			UiElementBuilder.fromQuestionDef2Xform(this,doc,xformsNode,formDef,formNode,modelNode,groupNode);
+			UiElementBuilder.fromQuestionDef2Xform(this,doc,xformsNode,formDef,formNode,modelNode,groupNode, true);
 		else
 			updateControlNodeName();
 

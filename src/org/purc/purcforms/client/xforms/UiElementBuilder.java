@@ -82,9 +82,9 @@ public class UiElementBuilder {
 	 * @param modelNode the xforms model node.
 	 * @param groupNode the xforms group node to which the question belongs.
 	 */
-	public static void fromQuestionDef2Xform(QuestionDef qtn, Document doc, Element xformsNode, FormDef formDef, Element formNode, Element modelNode,Element groupNode){
+	public static void fromQuestionDef2Xform(QuestionDef qtn, Document doc, Element xformsNode, FormDef formDef, Element formNode, Element modelNode,Element groupNode, boolean rebuild){
 		Element dataNode = qtn.getDataNode();
-		if(dataNode == null){
+		if(dataNode == null || rebuild){
 			dataNode =  XformBuilderUtil.fromVariableName2Node(doc,qtn.getBinding(),formDef,formNode);
 			if(qtn.getDefaultValue() != null && qtn.getDefaultValue().trim().length() > 0)
 				dataNode.appendChild(doc.createTextNode(qtn.getDefaultValue()));
@@ -94,7 +94,7 @@ public class UiElementBuilder {
 		String bindAttributeName = XformConstants.ATTRIBUTE_NAME_REF;
 		Element bindNode = qtn.getBindNode();
 		String id = qtn.getBinding();
-		if(bindNode == null){
+		if(bindNode == null || rebuild){
 			bindNode =  doc.createElement(XformConstants.NODE_NAME_BIND);
 			if(!groupNode.getNodeName().equals(XformConstants.NODE_NAME_REPEAT)){
 				modelNode.appendChild(bindNode);

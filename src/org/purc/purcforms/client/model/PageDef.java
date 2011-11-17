@@ -689,14 +689,16 @@ public class PageDef implements Serializable{
      * @return true if all are new, else false.
      */
     private boolean areAllQuestionsNew(){
-        if(questions == null)
+        //CKW-2310 commenting this out so that we always build the xform from scratch
+        //so we always want all questions to be new
+        /*if(questions == null)
             return false;
 
         for(int i=0; i<questions.size(); i++){
             QuestionDef questionDef = (QuestionDef)questions.elementAt(i);
             if(questionDef.getControlNode() != null)
                 return false;
-        }
+        }*/
         return true;
     }
 
