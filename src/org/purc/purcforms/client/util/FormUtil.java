@@ -108,7 +108,6 @@ public class FormUtil {
      * Possible values are "1" or "true" for YES and "0" or "false" for NO
      */
     private static final String PARAM_NAME_READONLY = "readOnly";
-    
 
     /** The date time format used in the xforms model xml. */
     private static DateTimeFormat dateTimeSubmitFormat;
@@ -633,6 +632,30 @@ public class FormUtil {
 				overwriteValidationsOnRefresh = true;
 		}
 
+        s = getDivValue(PARAM_NAME_SHOW_DYNAMIC_LISTS_TAB);
+        if(s != null && s.trim().length() > 0){
+            if("1".equals(s) || "true".equals(s))
+                showDynamicListsTab = true;
+        }
+
+        s = getDivValue(PARAM_NAME_SHOW_LAYOUTXML_TAB);
+        if(s != null && s.trim().length() > 0){
+            if("1".equals(s) || "true".equals(s))
+                showLayoutXmlTab = true;
+        }
+
+        s = getDivValue(PARAM_NAME_SHOW_JAVASCRIPT_TAB);
+        if(s != null && s.trim().length() > 0){
+            if("1".equals(s) || "true".equals(s))
+                showJavaScriptTab = true;
+        }
+
+        s = getDivValue(PARAM_NAME_SHOW_MODELXML_TAB);
+        if(s != null && s.trim().length() > 0){
+            if("1".equals(s) || "true".equals(s))
+                showModelXmlTab = true;
+        }
+
 		retrieveUrlParameters();
     }
     
@@ -1041,7 +1064,7 @@ public class FormUtil {
         return readOnlyMode;
     }
 
-    /**
+	/**
      * Displays an exception to the user.
      * 
      * @param ex the exception to display.
