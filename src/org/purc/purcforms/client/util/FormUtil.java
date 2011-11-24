@@ -958,6 +958,9 @@ public class FormUtil {
         else {
             displayId = displayNameId;
         }
+        if (Character.isDigit(displayId.charAt(0))) {
+            displayId = "_" + displayId;
+        }
         return displayId;
     }
 
