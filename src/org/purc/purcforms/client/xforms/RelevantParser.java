@@ -56,15 +56,18 @@ public class RelevantParser {
 			//then just add this question as another action target to the skip
 			//rule instead of creating a new skip rule.
 			SkipRule skipRule = skipRulesMap.get(relevant);
-			if(skipRule != null)
+			//CKW-2315 commenting out some lines below to overrule the action in the comments above, we 
+			//want a new skip rule each time even though the relevant
+			//may always be the same
+			/*if(skipRule != null)
 				skipRule.addActionTarget(qtn.getId());
-			else{
+			else{*/
 				skipRule = buildSkipRule(formDef, qtn.getId(),relevant,++id,XformParserUtil.getAction(qtn));
 				if(skipRule != null){
 					rules.add(skipRule);
 					skipRulesMap.put(relevant, skipRule);
 				}
-			}
+			//}
 		}
 
 		formDef.setSkipRules(rules);
