@@ -7,12 +7,14 @@ import java.util.List;
 import java.util.Vector;
 
 import org.purc.purcforms.client.model.Calculation;
+import org.purc.purcforms.client.model.Condition;
 import org.purc.purcforms.client.model.FormDef;
 import org.purc.purcforms.client.model.ModelConstants;
 import org.purc.purcforms.client.model.OptionDef;
 import org.purc.purcforms.client.model.PageDef;
 import org.purc.purcforms.client.model.QuestionDef;
 import org.purc.purcforms.client.model.RepeatQtnsDef;
+import org.purc.purcforms.client.model.ValidationRule;
 import org.purc.purcforms.client.util.FormUtil;
 import org.purc.purcforms.client.xpath.XPathExpression;
 
@@ -809,6 +811,22 @@ public class XformParser {
 				qtn.setHintNode(nodeContext.getHintNode());
 
 				qtn.setControlNode(child);
+				if (child.hasAttribute("jr:count")) {
+					ValidationRule validationRule = new ValidationRule(qtn.getId(), formDef);
+					Condition condition = new Condition();
+					condition.setQuestionId(qtn.getId());
+					condition.setValue(child.getAttribute("jr:count"));
+					if (child.getAttribute("jr:count").contains("/")) {
+						String jrCount = child.getAttribute("jr:count");
+						String questionVarName = jrCount.substring(jrCount.lastIndexOf("/")+1);
+						condition.setValueQtnDef(formDef.getQuestion(questionVarName));
+						condition.setValue(formDef.getQuestion(questionVarName).getDisplayText());
+					}												
+					condition.setOperator(ModelConstants.OPERATOR_EQUAL);
+					condition.setFunction(ModelConstants.FUNCTION_LENGTH);
+					validationRule.addCondition(condition);
+					formDef.addValidationRule(validationRule);
+				}
 				int pageNo = currentPageNo;
 				if(pageNo == 0) pageNo = 1; //Xform may not have groups for pages.
 				setQuestionDataNode(qtn,formDef,parentQtn);

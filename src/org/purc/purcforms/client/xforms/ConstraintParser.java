@@ -51,8 +51,14 @@ public class ConstraintParser {
             if(validationRule != null)
                 rules.add(validationRule);
         }
-
-        formDef.setValidationRules(rules);
+        if (formDef.getValidationRules() == null) {
+        	formDef.setValidationRules(rules);
+        }
+        else {
+        	for (Object e : rules) {
+        		formDef.addValidationRule((ValidationRule)e);
+        	}
+        }
     }
     
     

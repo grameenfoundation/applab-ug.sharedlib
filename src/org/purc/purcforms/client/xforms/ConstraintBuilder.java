@@ -45,7 +45,14 @@ public class ConstraintBuilder {
 			formDef.removeValidationRule(rule);
 			return; //possibly question deleted.
 		}
-
+		
+		if (questionDef.getDataType() == QuestionDef.QTN_TYPE_REPEAT) {
+			Element node = questionDef.getControlNode();
+			node.setAttribute("jr:count", rule.getConditionAt(0).getValue());
+			node.setAttribute("jr:noAddRemove", "true");
+			return;
+		}
+		
 		Element node = questionDef.getBindNode();
 		if(node == null)
 			node = questionDef.getControlNode();
