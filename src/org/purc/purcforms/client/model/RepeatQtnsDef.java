@@ -170,6 +170,9 @@ public class RepeatQtnsDef implements Serializable {
 	public QuestionDef getQuestion(String varName) {
 		if (varName == null || questions == null)
 			return null;
+		if (varName.contains("/")) {
+			varName = varName.substring(varName.lastIndexOf("/") + 1);
+		}
 		ArrayList<QuestionDef> allQuestions = getAllQuestions();
 		if (allQuestions != null && allQuestions.size() > 0) {
 			for (QuestionDef question : allQuestions) {
