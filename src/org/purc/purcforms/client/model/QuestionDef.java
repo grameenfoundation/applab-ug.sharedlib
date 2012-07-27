@@ -213,7 +213,7 @@ public class QuestionDef implements Serializable{
 	public QuestionDef(int id,String text,  int type, String variableName,Object parent) {
 		this(parent);
 		setId(id);
-		setText(text);
+		setText(id + "." + text);
 		setDataType(type);
 		setBinding(variableName);
 	}
