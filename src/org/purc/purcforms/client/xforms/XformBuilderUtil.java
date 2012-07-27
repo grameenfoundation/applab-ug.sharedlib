@@ -75,6 +75,8 @@ public class XformBuilderUtil {
 			return XformConstants.DATA_TYPE_BINARY;
 		case QuestionDef.QTN_TYPE_BARCODE:
 			return XformConstants.DATA_TYPE_BARCODE;
+		case QuestionDef.QTN_TYPE_LONGNUMBER:
+			return XformConstants.DATA_TYPE_TEXT;
 		}
 
 		return "";

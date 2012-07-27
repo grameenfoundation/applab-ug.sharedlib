@@ -282,6 +282,9 @@ public class UiElementBuilder {
 		else
 			node.setAttribute(XformConstants.ATTRIBUTE_NAME_ID, qtnDef.getBinding());
 
+		if (type == QuestionDef.QTN_TYPE_LONGNUMBER) {
+			node.setAttribute("appearance", "Numbers");
+		}
 		//Make ODK happy.
 		setMediaType(node, type);
 		

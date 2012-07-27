@@ -147,6 +147,9 @@ public class QuestionDef implements Serializable{
 
 	/** Question with barcode cordinates. */
 	public static final int QTN_TYPE_BARCODE = 16;
+	
+	/** Question with barcode cordinates. */
+	public static final int QTN_TYPE_LONGNUMBER = 17;
 
 	/** The xforms model data node into which this question will feed its answer. */
 	private Element dataNode;

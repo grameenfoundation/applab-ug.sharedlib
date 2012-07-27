@@ -318,6 +318,9 @@ public class XformParser {
 				NodeContext nodeContext = new NodeContext(label, hint, value, labelNode, hintNode, valueNode);
 				questionDef = parseUiElement(formDef, child,id2VarNameMap,questionDef,relevants,repeatQtns,rptKidMap,currentPageNo,parentQtn,constraints,orphanDynOptionQns,nodeContext);
 
+				if (child.hasAttribute("appearance")) {
+					questionDef.setDataType(QuestionDef.QTN_TYPE_LONGNUMBER);
+				}
 				label = nodeContext.getLabel();
 				hint = nodeContext.getHint();
 				value = nodeContext.getValue();
