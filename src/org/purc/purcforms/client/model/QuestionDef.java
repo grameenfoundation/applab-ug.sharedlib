@@ -1500,14 +1500,12 @@ public class QuestionDef implements Serializable{
 		String xpath = parentXpath + FormUtil.getNodePath(controlNode,parentXformNode);
 
 		if(dataType == QuestionDef.QTN_TYPE_REPEAT){
-			if (!(this.parent instanceof QuestionDef)) {
-				Element parent = (Element)controlNode.getParentNode();
-				xpath = parentXpath + FormUtil.getNodePath(parent,parentXformNode);
-	
-				String id = parent.getAttribute(XformConstants.ATTRIBUTE_NAME_ID);
-				if(id != null && id.trim().length() > 0)
-					xpath += "[@" + XformConstants.ATTRIBUTE_NAME_ID + "='" + id + "']";
-			}
+			Element parent = (Element)controlNode.getParentNode();
+			xpath = parentXpath + FormUtil.getNodePath(parent,parentXformNode);
+
+			String id = parent.getAttribute(XformConstants.ATTRIBUTE_NAME_ID);
+			if(id != null && id.trim().length() > 0)
+				xpath += "[@" + XformConstants.ATTRIBUTE_NAME_ID + "='" + id + "']";
 		}
 		else{
 			String id = controlNode.getAttribute(XformConstants.ATTRIBUTE_NAME_BIND);
